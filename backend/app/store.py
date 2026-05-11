@@ -3,6 +3,7 @@ import os
 import sqlite3
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Protocol, runtime_checkable
 from uuid import uuid4
 
 from .classifier import classify_question
@@ -35,6 +36,66 @@ class PracticeRecord:
     question_ids: list[str] = field(default_factory=list)
     variant: dict | None = None
     result: str | None = None
+
+
+@runtime_checkable
+class Store(Protocol):
+    def register(self, email: str, password: str) -> UserRecord:
+        ...
+
+    def login(self, email: str, password: str) -> str | None:
+        ...
+
+    def user_for_token(self, token: str) -> UserRecord | None:
+        ...
+
+    def create_upload_draft(self, user_id: str, filename: str) -> QuestionRecord:
+        ...
+
+    def confirm_question(
+        self,
+        question_id: str,
+        user_id: str,
+        content_md_latex: str,
+        subject: str,
+        chapter: str,
+        mastery: str,
+    ) -> QuestionRecord | None:
+        ...
+
+    def get_question(self, question_id: str, user_id: str) -> QuestionRecord | None:
+        ...
+
+    def list_questions(
+        self,
+        user_id: str,
+        subject: str | None = None,
+        chapter: str | None = None,
+    ) -> list[QuestionRecord]:
+        ...
+
+    def create_original_practice(
+        self,
+        user_id: str,
+        count: int,
+        subject: str | None = None,
+        chapter: str | None = None,
+    ) -> PracticeRecord:
+        ...
+
+    def create_variant_practice(
+        self,
+        user_id: str,
+        source_question_id: str,
+        topic: str,
+    ) -> PracticeRecord:
+        ...
+
+    def review_practice(self, practice_id: str, user_id: str, result: str) -> PracticeRecord | None:
+        ...
+
+    def questions_by_ids(self, user_id: str, question_ids: list[str]) -> list[QuestionRecord]:
+        ...
 
 
 class SQLiteStore:
@@ -348,6 +409,71 @@ class SQLiteStore:
         )
 
 
+class CloudDatabaseStore:
+    def __init__(self, database_url: str) -> None:
+        self.database_url = database_url
+
+    def _not_implemented(self) -> None:
+        raise NotImplementedError("云端数据库适配层已预留，真实云数据库实现将在后续功能接入")
+
+    def register(self, email: str, password: str) -> UserRecord:
+        self._not_implemented()
+
+    def login(self, email: str, password: str) -> str | None:
+        self._not_implemented()
+
+    def user_for_token(self, token: str) -> UserRecord | None:
+        self._not_implemented()
+
+    def create_upload_draft(self, user_id: str, filename: str) -> QuestionRecord:
+        self._not_implemented()
+
+    def confirm_question(
+        self,
+        question_id: str,
+        user_id: str,
+        content_md_latex: str,
+        subject: str,
+        chapter: str,
+        mastery: str,
+    ) -> QuestionRecord | None:
+        self._not_implemented()
+
+    def get_question(self, question_id: str, user_id: str) -> QuestionRecord | None:
+        self._not_implemented()
+
+    def list_questions(
+        self,
+        user_id: str,
+        subject: str | None = None,
+        chapter: str | None = None,
+    ) -> list[QuestionRecord]:
+        self._not_implemented()
+
+    def create_original_practice(
+        self,
+        user_id: str,
+        count: int,
+        subject: str | None = None,
+        chapter: str | None = None,
+    ) -> PracticeRecord:
+        self._not_implemented()
+
+    def create_variant_practice(
+        self,
+        user_id: str,
+        source_question_id: str,
+        topic: str,
+    ) -> PracticeRecord:
+        self._not_implemented()
+
+    def review_practice(self, practice_id: str, user_id: str, result: str) -> PracticeRecord | None:
+        self._not_implemented()
+
+    def questions_by_ids(self, user_id: str, question_ids: list[str]) -> list[QuestionRecord]:
+        self._not_implemented()
+
+
 def default_db_path() -> Path:
     configured = os.environ.get("WQ_LEARNER_DB")
     if configured:
@@ -355,4 +481,11 @@ def default_db_path() -> Path:
     return Path(__file__).resolve().parents[1] / "data" / "wq_learner.db"
 
 
-store = SQLiteStore(default_db_path())
+def create_store() -> Store:
+    database_url = os.environ.get("WQ_LEARNER_DATABASE_URL")
+    if database_url:
+        return CloudDatabaseStore(database_url)
+    return SQLiteStore(default_db_path())
+
+
+store: Store = create_store()
