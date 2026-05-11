@@ -61,6 +61,7 @@ import com.example.wq_learner1.data.QuestionBankResult
 import com.example.wq_learner1.domain.SubjectClassifier
 import com.example.wq_learner1.network.ApiConfig
 import com.example.wq_learner1.network.ApiEndpointState
+import com.example.wq_learner1.network.ApiVariantQuestion
 import com.example.wq_learner1.network.SessionState
 import com.example.wq_learner1.network.WqLearnerApiClient
 import com.example.wq_learner1.ui.theme.WQlearner1Theme
@@ -134,16 +135,10 @@ private fun WqLearnerApp() {
                 MainTab.Upload -> UploadScreen(
                     sessionState = sessionState,
                     apiClient = apiClient,
-                    onSave = { content, subject, chapter ->
+                    onSave = { question ->
                         questions.add(
                             0,
-                            MistakeQuestion(
-                                id = "Q-${(questions.size + 1).toString().padStart(3, '0')}",
-                                content = content,
-                                subject = subject,
-                                chapter = chapter,
-                                mastery = "reviewing",
-                            ),
+                            question,
                         )
                     },
                 )
@@ -152,7 +147,11 @@ private fun WqLearnerApp() {
                     sessionState = sessionState,
                     repository = questionBankRepository,
                 )
-                MainTab.Practice -> PracticeScreen(questions = questions)
+                MainTab.Practice -> PracticeScreen(
+                    questions = questions,
+                    sessionState = sessionState,
+                    apiClient = apiClient,
+                )
                 MainTab.Me -> MeScreen(
                     sessionState = sessionState,
                     apiClient = apiClient,
@@ -171,7 +170,7 @@ private fun WqLearnerApp() {
 private fun UploadScreen(
     sessionState: SessionState,
     apiClient: WqLearnerApiClient,
-    onSave: (content: String, subject: String, chapter: String) -> Unit,
+    onSave: (MistakeQuestion) -> Unit,
 ) {
     val context = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
@@ -249,7 +248,15 @@ private fun UploadScreen(
                     draftContent = draft.contentMdLatex
                     subject = draft.subject
                     chapter = draft.chapter
-                    onSave(draft.contentMdLatex, draft.subject, draft.chapter)
+                    onSave(
+                        MistakeQuestion(
+                            id = draft.id,
+                            content = draft.contentMdLatex,
+                            subject = draft.subject,
+                            chapter = draft.chapter,
+                            mastery = draft.mastery,
+                        ),
+                    )
                     status = "已上传到云端并生成错题草稿：${draft.id}"
                 }
             } catch (error: Exception) {
@@ -469,23 +476,70 @@ private fun QuestionBankScreen(
 }
 
 @Composable
-private fun PracticeScreen(questions: List<MistakeQuestion>) {
+private fun PracticeScreen(
+    questions: List<MistakeQuestion>,
+    sessionState: SessionState,
+    apiClient: WqLearnerApiClient,
+) {
     var mode by remember { mutableStateOf("original") }
     val current = questions.firstOrNull()
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    var status by remember { mutableStateOf("选择一种练习方式。") }
+    var variant by remember { mutableStateOf<ApiVariantQuestion?>(null) }
+
+    fun generateVariant() {
+        val token = sessionState.accessToken
+        if (token.isNullOrBlank()) {
+            status = "请先在“我的”页面登录后再生成变形题。"
+            mode = "variant"
+            return
+        }
+        val source = current
+        if (source == null) {
+            status = "题库为空，请先上传或刷新错题。"
+            mode = "variant"
+            return
+        }
+        mode = "variant"
+        status = "正在生成变形题..."
+        Thread {
+            try {
+                val practice = apiClient.createVariantPractice(
+                    token = token,
+                    sourceQuestionId = source.id,
+                    topic = source.chapter,
+                )
+                mainHandler.post {
+                    variant = practice.variant
+                    status = "已生成变形题：${practice.id}"
+                }
+            } catch (error: Exception) {
+                mainHandler.post {
+                    status = "变形题生成失败：${error.message}"
+                }
+            }
+        }.start()
+    }
 
     ScreenColumn {
         ScreenTitle(
             title = "练习复盘",
-            subtitle = "支持抽现有错题，也支持预留的大模型变形题模式。",
+            subtitle = "支持抽现有错题，也支持由云端大模型生成变形题。",
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Button(onClick = { mode = "original" }) {
                 Text("抽现有错题")
             }
-            OutlinedButton(onClick = { mode = "variant" }) {
+            OutlinedButton(onClick = { generateVariant() }) {
                 Text("生成变形题")
             }
         }
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = status,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyMedium,
+        )
         Spacer(Modifier.height(8.dp))
         if (current == null) {
             EmptyState("题库为空，请先上传错题。")
@@ -496,16 +550,28 @@ private fun PracticeScreen(questions: List<MistakeQuestion>) {
                 ReviewButtons()
             }
         } else {
-            InfoCard(title = "模拟变形题") {
-                Text(
-                    text = "基于「${current.chapter}」生成：如果将原题条件改为另一种输入规模，时间复杂度如何变化？",
-                    style = MaterialTheme.typography.bodyLarge,
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "第一版由后端模拟返回，后续可替换为真实大模型。",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            InfoCard(title = variant?.title ?: "大模型变形题") {
+                if (variant == null) {
+                    Text(
+                        text = "点击“生成变形题”后，将基于「${current.chapter}」从云端生成。",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    Text(
+                        text = variant?.contentMdLatex.orEmpty(),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "答案：${variant?.answerMdLatex.orEmpty()}",
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        text = "解析：${variant?.explanationMdLatex.orEmpty()}",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Spacer(Modifier.height(12.dp))
                 ReviewButtons()
             }

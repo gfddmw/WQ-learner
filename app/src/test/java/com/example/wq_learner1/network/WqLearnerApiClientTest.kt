@@ -97,6 +97,46 @@ class WqLearnerApiClientTest {
     }
 
     @Test
+    fun createVariantPracticeSendsSourceQuestionAndParsesVariant() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """
+                    {
+                      "id":"P-001",
+                      "mode":"variant",
+                      "questions":[],
+                      "variant":{
+                        "source_question_id":"Q-001",
+                        "title":"二叉树遍历变式题",
+                        "content_md_latex":"若输入规模变为 ${'$'}2n${'$'}，分析复杂度。",
+                        "answer_md_latex":"仍为 ${'$'}O(n)${'$'}。",
+                        "explanation_md_latex":"每个结点访问一次。"
+                      }
+                    }
+                """.trimIndent(),
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        val practice = client.createVariantPractice(
+            token = "abc123",
+            sourceQuestionId = "Q-001",
+            topic = "树与二叉树",
+        )
+
+        assertEquals("POST", transport.lastRequest.method)
+        assertEquals("/practice/variant", transport.lastRequest.path)
+        assertEquals("Bearer abc123", transport.lastRequest.headers["Authorization"])
+        assertTrue(transport.lastRequest.body.contains("Q-001"))
+        assertTrue(transport.lastRequest.body.contains("树与二叉树"))
+        assertEquals("P-001", practice.id)
+        assertEquals("variant", practice.mode)
+        assertEquals("二叉树遍历变式题", practice.variant?.title)
+        assertEquals("仍为 ${'$'}O(n)${'$'}。", practice.variant?.answerMdLatex)
+    }
+
+    @Test
     fun sessionStateStoresAndClearsLogin() {
         val state = SessionState()
 

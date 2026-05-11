@@ -1,6 +1,6 @@
 # 阿里云函数计算部署说明
 
-本文记录 WQ Learner 后端迁移到阿里云函数计算的基础配置。当前阶段只完成函数计算运行基础：健康检查、依赖清单和启动入口。OSS、云端数据库、OCR 和大模型会在后续功能中逐步接入。
+本文记录 WQ Learner 后端迁移到阿里云函数计算的基础配置。当前后端已经接入函数计算运行入口、OSS 图片存储、表格存储、通义千问 VL OCR 和通义千问变形题生成。
 
 ## 部署形态
 
@@ -75,7 +75,7 @@ pip install -r requirements.txt -t .
 
 ## 环境变量
 
-当前阶段保留 SQLite 作为本地开发和测试数据源。函数计算正式环境后续会切换到云端数据库；在此之前，不应把函数计算本地磁盘视为正式持久化数据源。
+本地开发可继续使用 SQLite 和本地上传目录；函数计算正式环境应使用 OSS、表格存储和通义千问模型服务。
 
 当前可用环境变量：
 
@@ -85,14 +85,18 @@ pip install -r requirements.txt -t .
 | `WQ_LEARNER_DB` | 本地 SQLite 数据库路径，仅用于开发和临时验证 | `/tmp/wq_learner.db` |
 | `WQ_LEARNER_DATABASE_URL` | 云端数据库连接地址，当前为适配入口占位 | `postgresql://...` |
 | `WQ_LEARNER_UPLOAD_DIR` | 本地图片上传目录，仅用于开发和测试 | `/tmp/wq-learner-uploads` |
-| `WQ_LEARNER_OSS_BUCKET` | OSS bucket 名称，当前为适配入口占位 | `wq-learner-questions` |
-| `WQ_LEARNER_OSS_ENDPOINT` | OSS endpoint，当前为适配入口占位 | `oss-cn-hangzhou.aliyuncs.com` |
-
-后续功能会新增：
-
-| 名称 | 用途 |
-| --- | --- |
-| `WQ_LEARNER_MODEL_API_KEY` | OCR/大模型服务密钥 |
+| `WQ_LEARNER_OSS_BUCKET` | OSS bucket 名称 | `wq-learner` |
+| `WQ_LEARNER_OSS_ENDPOINT` | OSS endpoint | `oss-cn-hangzhou.aliyuncs.com` |
+| `WQ_LEARNER_OSS_REGION` | OSS region | `cn-hangzhou` |
+| `WQ_LEARNER_TABLESTORE_INSTANCE` | 表格存储实例名 | `wq-learner` |
+| `WQ_LEARNER_TABLESTORE_ENDPOINT` | 表格存储 endpoint | `https://wq-learner.cn-hangzhou.ots.aliyuncs.com` |
+| `WQ_LEARNER_TABLESTORE_REGION` | 表格存储 region | `cn-hangzhou` |
+| `WQ_LEARNER_OCR_PROVIDER` | OCR 服务提供方，真实识别用 `dashscope` | `dashscope` |
+| `WQ_LEARNER_OCR_MODEL` | OCR 多模态模型 | `qwen3-vl-plus` |
+| `WQ_LEARNER_VARIANT_PROVIDER` | 变形题服务提供方，真实生成用 `dashscope` | `dashscope` |
+| `WQ_LEARNER_VARIANT_MODEL` | 变形题文本模型 | `qwen-plus` |
+| `WQ_LEARNER_DASHSCOPE_BASE_URL` | DashScope OpenAI 兼容接口地址，可省略 | `https://dashscope.aliyuncs.com/compatible-mode/v1` |
+| `DASHSCOPE_API_KEY` | 百炼 API Key，用于 OCR 和变形题生成 | `sk-...` |
 
 ## Android 接入方式
 
@@ -112,6 +116,7 @@ https://example.cn-hangzhou.fcapp.run
 ## 注意事项
 
 - 函数计算实例可能冷启动，健康检查接口应保持轻量。
-- 图片不要保存到函数计算本地磁盘，后续改用 OSS。
-- 正式用户、错题、练习记录不要依赖函数计算本地 SQLite，后续改用云端数据库。
+- 图片不要保存到函数计算本地磁盘，正式环境使用 OSS。
+- 正式用户、错题、练习记录不要依赖函数计算本地 SQLite，正式环境使用表格存储。
+- 函数计算依赖层需要包含 `openai`、`oss2` 和 `tablestore`。
 - 生产环境应优先使用 HTTPS 自定义域名。

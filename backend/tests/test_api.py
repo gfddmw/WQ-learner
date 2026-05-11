@@ -91,18 +91,42 @@ def test_upload_uses_ocr_result_for_draft(monkeypatch):
     assert draft["chapter"] == "传输层"
 
 
-def test_variant_practice_returns_simulated_variant():
+def test_variant_practice_uses_source_question_and_variant_service(monkeypatch):
+    headers = auth_headers()
+    fake_variant_service = FakeVariantService()
+    monkeypatch.setattr(main_module, "variant_service", fake_variant_service)
+    upload = client.post(
+        "/questions/upload",
+        headers=headers,
+        files={"image": ("tree.png", b"fake-image", "image/png")},
+    )
+    source = upload.json()
+
+    response = client.post(
+        "/practice/variant",
+        headers=headers,
+        json={"source_question_id": source["id"], "topic": "树与二叉树"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["mode"] == "variant"
+    assert body["variant"]["title"] == "二叉树遍历变式题"
+    assert body["variant"]["source_question_id"] == source["id"]
+    assert fake_variant_service.calls[0]["source_question_id"] == source["id"]
+    assert fake_variant_service.calls[0]["topic"] == "树与二叉树"
+
+
+def test_variant_practice_returns_404_for_missing_source_question():
     headers = auth_headers()
 
     response = client.post(
         "/practice/variant",
         headers=headers,
-        json={"source_question_id": "sample", "topic": "树与二叉树"},
+        json={"source_question_id": "missing", "topic": "树与二叉树"},
     )
 
-    assert response.status_code == 200
-    assert response.json()["mode"] == "variant"
-    assert "模拟变形题" in response.json()["variant"]["title"]
+    assert response.status_code == 404
 
 
 class FakeOcrService:
@@ -125,3 +149,23 @@ class FakeOcrService:
             chapter="传输层",
             confidence=2,
         )
+
+
+class FakeVariantService:
+    def __init__(self):
+        self.calls = []
+
+    def generate(self, source_question, topic: str):
+        self.calls.append(
+            {
+                "source_question_id": source_question.id,
+                "topic": topic,
+            }
+        )
+        return {
+            "source_question_id": source_question.id,
+            "title": "二叉树遍历变式题",
+            "content_md_latex": "若树的形态变化，分析遍历复杂度。",
+            "answer_md_latex": "时间复杂度仍为 $O(n)$。",
+            "explanation_md_latex": "每个结点访问一次。",
+        }

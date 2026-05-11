@@ -121,6 +121,20 @@ data class ApiQuestion(
     val mastery: String,
 )
 
+data class ApiVariantQuestion(
+    val sourceQuestionId: String,
+    val title: String,
+    val contentMdLatex: String,
+    val answerMdLatex: String,
+    val explanationMdLatex: String,
+)
+
+data class ApiPractice(
+    val id: String,
+    val mode: String,
+    val variant: ApiVariantQuestion? = null,
+)
+
 class SessionState {
     var accessToken: String? = null
         private set
@@ -224,8 +238,29 @@ class WqLearnerApiClient(
         return response.body.toQuestion()
     }
 
+    fun createVariantPractice(
+        token: String,
+        sourceQuestionId: String,
+        topic: String,
+    ): ApiPractice {
+        val response = transport.send(
+            HttpRequest(
+                method = "POST",
+                path = "/practice/variant",
+                headers = mapOf("Authorization" to "Bearer $token"),
+                body = variantPracticeBody(sourceQuestionId, topic),
+            ),
+        )
+        requireSuccess(response)
+        return response.body.toPractice()
+    }
+
     private fun authBody(email: String, password: String): String {
         return """{"email":"${email.jsonEscape()}","password":"${password.jsonEscape()}"}"""
+    }
+
+    private fun variantPracticeBody(sourceQuestionId: String, topic: String): String {
+        return """{"source_question_id":"${sourceQuestionId.jsonEscape()}","topic":"${topic.jsonEscape()}"}"""
     }
 
     private fun multipartImageBody(
@@ -267,6 +302,24 @@ private fun String.toQuestion(): ApiQuestion {
         chapter = jsonValue("chapter"),
         status = jsonValue("status"),
         mastery = jsonValue("mastery"),
+    )
+}
+
+private fun String.toPractice(): ApiPractice {
+    return ApiPractice(
+        id = jsonValue("id"),
+        mode = jsonValue("mode"),
+        variant = if (contains(""""variant"""")) {
+            ApiVariantQuestion(
+                sourceQuestionId = jsonValue("source_question_id"),
+                title = jsonValue("title"),
+                contentMdLatex = jsonValue("content_md_latex"),
+                answerMdLatex = jsonValue("answer_md_latex"),
+                explanationMdLatex = jsonValue("explanation_md_latex"),
+            )
+        } else {
+            null
+        },
     )
 }
 

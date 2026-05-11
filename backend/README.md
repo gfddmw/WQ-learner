@@ -14,7 +14,7 @@ uvicorn app.main:app --app-dir backend --reload
 pytest backend/tests -v
 ```
 
-当前版本使用 SQLite 持久化，并使用模拟 OCR 和模拟变形题生成。API 形态已经为后续接入对象存储、真实 OCR/公式识别和大模型服务预留。
+当前版本使用 SQLite 持久化，并支持通过环境变量切换到表格存储、OSS、通义千问 VL OCR 和通义千问变形题生成。未配置云端模型时，会回退到模拟 OCR 和模拟变形题生成，方便本地开发。
 
 ## 数据
 
@@ -173,6 +173,35 @@ confidence
 ```
 
 真实服务的密钥、endpoint 和模型名称应通过函数计算环境变量配置，不写入代码。
+
+## 大模型变形题
+
+`POST /practice/variant` 的处理流程是：
+1. Android 传入原错题 ID 和主题。
+2. 后端校验原错题属于当前登录用户。
+3. 后端调用变形题生成服务，生成同知识点、不同条件的变式题。
+4. 后端把练习记录写入 SQLite 或表格存储。
+
+默认使用 `SimulatedVariantGenerator`，便于无密钥本地测试。函数计算环境配置通义千问后，会使用 `DashScopeVariantGenerator`：
+
+```text
+WQ_LEARNER_VARIANT_PROVIDER=dashscope
+WQ_LEARNER_VARIANT_MODEL=qwen-plus
+DASHSCOPE_API_KEY=你的百炼 API Key
+WQ_LEARNER_DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+```
+
+`WQ_LEARNER_DASHSCOPE_BASE_URL` 可与 OCR 共用并省略。函数计算依赖层需要包含 `openai`。
+
+变形题返回字段：
+
+```text
+source_question_id
+title
+content_md_latex
+answer_md_latex
+explanation_md_latex
+```
 
 ## 主要接口
 

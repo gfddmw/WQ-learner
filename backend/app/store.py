@@ -101,6 +101,7 @@ class Store(Protocol):
         user_id: str,
         source_question_id: str,
         topic: str,
+        variant: dict | None = None,
     ) -> PracticeRecord:
         ...
 
@@ -294,12 +295,9 @@ class SQLiteStore:
         user_id: str,
         source_question_id: str,
         topic: str,
+        variant: dict | None = None,
     ) -> PracticeRecord:
-        variant = {
-            "title": f"模拟变形题：{topic}",
-            "content_md_latex": f"基于原错题 `{source_question_id}`，请重新分析 {topic} 的关键步骤。",
-            "answer_md_latex": "这是第一版模拟答案，未来会由大模型生成。",
-        }
+        variant = variant or default_variant(source_question_id, topic)
         practice = PracticeRecord(
             id=str(uuid4()),
             user_id=user_id,
@@ -619,12 +617,9 @@ class TableStoreStore:
         user_id: str,
         source_question_id: str,
         topic: str,
+        variant: dict | None = None,
     ) -> PracticeRecord:
-        variant = {
-            "title": f"模拟变形题：{topic}",
-            "content_md_latex": f"基于原错题 `{source_question_id}`，请重新分析 {topic} 的关键步骤。",
-            "answer_md_latex": "这是第一版模拟答案，未来会由大模型生成。",
-        }
+        variant = variant or default_variant(source_question_id, topic)
         practice = PracticeRecord(
             id=str(uuid4()),
             user_id=user_id,
@@ -794,6 +789,7 @@ class CloudDatabaseStore:
         user_id: str,
         source_question_id: str,
         topic: str,
+        variant: dict | None = None,
     ) -> PracticeRecord:
         self._not_implemented()
 
@@ -818,6 +814,16 @@ def draft_fields_or_default(
     )
     classification = classify_question(recognized)
     return recognized, classification.subject, classification.chapter
+
+
+def default_variant(source_question_id: str, topic: str) -> dict[str, str]:
+    return {
+        "source_question_id": source_question_id,
+        "title": f"模拟变形题：{topic}",
+        "content_md_latex": f"基于原错题 `{source_question_id}`，请重新分析 {topic} 的关键步骤。",
+        "answer_md_latex": "这是第一版模拟答案，未来会由大模型生成。",
+        "explanation_md_latex": "模拟解析用于本地开发；真实环境会由大模型生成。",
+    }
 
 
 def _tablestore_response_row(response: Any) -> Any:

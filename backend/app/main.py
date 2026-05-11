@@ -17,6 +17,7 @@ from .models import (
 from .image_storage import image_storage
 from .ocr import ocr_service
 from .store import QuestionRecord, UserRecord, store
+from .variant_generator import variant_service
 
 app = FastAPI(title="WQ Learner API")
 
@@ -194,10 +195,15 @@ def draw_variant(
     request: VariantPracticeRequest,
     user: UserRecord = Depends(current_user),
 ) -> PracticeResponse:
+    source_question = store.get_question(request.source_question_id, user.id)
+    if source_question is None:
+        raise HTTPException(status_code=404, detail="Source question not found")
+    variant = variant_service.generate(source_question, request.topic)
     practice = store.create_variant_practice(
         user_id=user.id,
         source_question_id=request.source_question_id,
         topic=request.topic,
+        variant=variant,
     )
     return PracticeResponse(id=practice.id, mode=practice.mode, variant=practice.variant)
 
