@@ -105,6 +105,15 @@ data class AuthSession(
     val tokenType: String,
 )
 
+data class StoredSession(
+    val accessToken: String,
+    val tokenType: String,
+    val email: String,
+) {
+    val isComplete: Boolean
+        get() = accessToken.isNotBlank() && tokenType.isNotBlank() && email.isNotBlank()
+}
+
 data class ApiQuestion(
     val id: String,
     val userId: String,
@@ -145,6 +154,30 @@ class SessionState {
         accessToken = session.accessToken
         tokenType = session.tokenType
         this.email = email
+    }
+
+    fun restore(session: StoredSession?) {
+        if (session == null || !session.isComplete) {
+            clear()
+            return
+        }
+        accessToken = session.accessToken
+        tokenType = session.tokenType
+        email = session.email
+    }
+
+    fun snapshot(): StoredSession? {
+        val currentAccessToken = accessToken
+        val currentTokenType = tokenType
+        val currentEmail = email
+        if (currentAccessToken.isNullOrBlank() || currentTokenType.isNullOrBlank() || currentEmail.isNullOrBlank()) {
+            return null
+        }
+        return StoredSession(
+            accessToken = currentAccessToken,
+            tokenType = currentTokenType,
+            email = currentEmail,
+        )
     }
 
     fun clear() {

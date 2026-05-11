@@ -64,6 +64,7 @@ import com.example.wq_learner1.network.ApiConfig
 import com.example.wq_learner1.network.ApiEndpointState
 import com.example.wq_learner1.network.ApiVariantQuestion
 import com.example.wq_learner1.network.SessionState
+import com.example.wq_learner1.network.SharedPreferencesSessionStore
 import com.example.wq_learner1.network.WqLearnerApiClient
 import com.example.wq_learner1.ui.theme.WQlearner1Theme
 
@@ -89,7 +90,13 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun WqLearnerApp() {
     var selectedTab by remember { mutableStateOf(MainTab.Upload) }
-    val sessionState = remember { SessionState() }
+    val context = LocalContext.current
+    val sessionStore = remember { SharedPreferencesSessionStore(context.applicationContext) }
+    val sessionState = remember {
+        SessionState().apply {
+            restore(sessionStore.load())
+        }
+    }
     var endpointState by remember { mutableStateOf(ApiEndpointState()) }
     val apiClient = remember(endpointState.baseUrl) { WqLearnerApiClient(endpointState.baseUrl) }
     val questionBankRepository = remember(apiClient) { QuestionBankRepository(apiClient) }
@@ -139,7 +146,14 @@ private fun WqLearnerApp() {
                     endpointState = endpointState,
                     onBaseUrlChange = { nextBaseUrl ->
                         endpointState = endpointState.withBaseUrl(nextBaseUrl)
+                        sessionStore.clear()
                         sessionState.clear()
+                    },
+                    onSessionSaved = {
+                        sessionState.snapshot()?.let(sessionStore::save)
+                    },
+                    onSessionCleared = {
+                        sessionStore.clear()
                     },
                 )
             }
@@ -575,6 +589,8 @@ private fun MeScreen(
     apiClient: WqLearnerApiClient,
     endpointState: ApiEndpointState,
     onBaseUrlChange: (String) -> Unit,
+    onSessionSaved: () -> Unit,
+    onSessionCleared: () -> Unit,
 ) {
     var email by remember { mutableStateOf(sessionState.email ?: "demo@example.com") }
     var password by remember { mutableStateOf("secret123") }
@@ -595,6 +611,7 @@ private fun MeScreen(
                 }
                 val session = apiClient.login(email, password)
                 sessionState.setSession(session, email)
+                onSessionSaved()
                 tokenPreview = session.accessToken.take(8)
                 status = "已连接后端并保存 token"
             } catch (error: Exception) {
@@ -655,6 +672,7 @@ private fun MeScreen(
                 OutlinedButton(
                     onClick = {
                         sessionState.clear()
+                        onSessionCleared()
                         tokenPreview = ""
                         status = "已退出登录"
                     },
