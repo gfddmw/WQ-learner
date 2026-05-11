@@ -1,120 +1,120 @@
-# WQ Learner Design
+# WQ Learner 设计文档
 
-Date: 2026-05-11
+日期：2026-05-11
 
-## Goal
+## 目标
 
-WQ Learner is an Android app for 11408 postgraduate entrance exam review. The first version lets a user upload photos of wrong questions, recognize the content into Markdown with LaTeX formulas, classify each question by 11408 subject and chapter, save it to a cloud question bank, and practice later by either drawing existing wrong questions or requesting simulated variant questions.
+WQ Learner 是一个面向 11408 考研复习的 Android 错题学习应用。第一版目标是让用户上传错题照片，将内容识别为 Markdown + LaTeX 公式格式，按 11408 科目和章节分类，保存到云端错题库，并通过两种方式复习：抽取已有错题，或请求基于已有错题生成的变形题。
 
-The selected first-version scope is a semi-real product:
+第一版选择“半真实产品”范围：
 
-- Real Android capture or image selection.
-- Real backend upload, user account, cloud question bank, and OCR/formula-recognition integration boundary.
-- Real storage of recognized content as Markdown plus LaTeX.
-- Real 11408 subject and chapter classification with user correction.
-- Simulated variant-question generation behind the same API shape that a future large model will use.
+- Android 端提供拍照或选图入口。
+- 后端提供上传、账号、云端错题库和 OCR/公式识别边界。
+- 识别内容以 Markdown + LaTeX 保存。
+- 自动建议 11408 科目和章节，并允许用户修正。
+- 大模型变形题先使用模拟返回，但 API 形态与未来真实大模型保持一致。
 
-## Non-Goals
+## 非目标
 
-- The first version will not call a production large model for variant questions.
-- The first version will not build a web client.
-- The first version will not attempt fully local OCR or formula recognition on Android.
-- The first version will not implement fine-grained knowledge-point tagging beyond subject and chapter.
+- 第一版不接生产级大模型生成变形题。
+- 第一版不构建 Web 客户端。
+- 第一版不在 Android 本地完成完整 OCR 或公式识别。
+- 第一版不做比“科目 + 章节”更细的知识点标签。
 
-## Architecture
+## 架构
 
-The app uses a cloud-centered architecture:
+系统采用以云端错题库为核心的架构：
 
-- Android App: user interaction, photo capture, image selection, recognition review, manual correction, question browsing, and practice.
-- FastAPI Backend: authentication, upload handling, OCR/formula-recognition orchestration, classification, question-bank APIs, and practice APIs.
-- Cloud Data: user records, mistake questions, uploaded images, category metadata, and practice records.
-- OCR/Formula Recognition Provider: returns recognized text and formulas, which the backend normalizes into Markdown plus LaTeX.
-- Future LLM Provider: later replaces the simulated variant-question service without changing the Android flow.
+- Android App：负责用户交互、拍照/选图、识别结果校正、错题浏览和练习。
+- FastAPI 后端：负责认证、上传处理、OCR/公式识别编排、分类、错题库 API 和练习 API。
+- 云端数据：保存用户、错题、图片、分类元数据和练习记录。
+- OCR/公式识别服务：返回文本和公式，后端统一转换成 Markdown + LaTeX。
+- 未来大模型服务：后续替换当前模拟变形题服务，不改变 Android 端主要流程。
 
-This architecture keeps API keys and model-service credentials out of the Android app, supports account-based sync, and leaves room for future multi-device or web clients.
+这个架构可以避免把 API Key 和模型服务凭据放在 Android 客户端，同时支持账号同步和未来多端扩展。
 
 ## Android App
 
-The Android app uses four main tabs:
+Android App 使用四个主入口：
 
-1. Upload
-2. Question Bank
-3. Practice
-4. Me
+1. 上传
+2. 题库
+3. 练习
+4. 我的
 
-### Upload Flow
+### 上传流程
 
-The upload flow is the core entry path:
+上传是核心录入路径：
 
-1. User takes a photo or chooses an image from the album.
-2. App uploads the image to the backend.
-3. Backend stores the image and runs OCR/formula recognition.
-4. Backend returns a draft question with recognized Markdown plus LaTeX and suggested subject/chapter.
-5. App shows the original image and editable recognition result side by side or in stacked sections.
-6. User corrects the content, subject, and chapter.
-7. App confirms the question and saves it to the cloud question bank.
+1. 用户拍照或从相册选择图片。
+2. App 将图片上传到后端。
+3. 后端保存图片，并执行 OCR/公式识别。
+4. 后端返回错题草稿，包括 Markdown + LaTeX 内容和建议科目/章节。
+5. App 展示原图和可编辑的识别结果。
+6. 用户修正题干、公式、科目和章节。
+7. App 确认入库，错题保存到云端错题库。
 
-### Question Bank
+### 题库
 
-The question bank supports:
+题库支持：
 
-- Browsing by subject and chapter.
-- Searching recognized question text.
-- Opening a question detail page with original image, Markdown/LaTeX content, subject, chapter, status, and mastery level.
-- Editing the recognized content and category after saving.
+- 按科目和章节浏览。
+- 搜索识别后的题干。
+- 查看错题详情，包括原图、Markdown/LaTeX 内容、科目、章节、状态和掌握程度。
+- 保存后仍可编辑识别内容和分类。
 
-The first version classifies questions into the four 11408 subjects:
+第一版按 11408 四门课分类：
 
-- Data Structures
-- Computer Organization
-- Operating Systems
-- Computer Networks
+- 数据结构
+- 计算机组成原理
+- 操作系统
+- 计算机网络
 
-Each subject has a curated chapter list. Examples include trees and graphs for Data Structures, cache and instruction pipeline for Computer Organization, process management and memory management for Operating Systems, and TCP/IP and routing for Computer Networks.
+每门课维护常见章节列表。例如数据结构包含树与二叉树、图、排序、查找与散列；计组包含存储系统、指令系统、CPU；操作系统包含进程管理、内存管理、文件系统；计算机网络包含传输层、网络层、应用层。
 
-### Practice
+### 练习
 
-Practice has two modes:
+练习有两种模式：
 
-- Original mode: draw existing wrong questions from the cloud question bank.
-- Variant mode: call the variant-question API. In the first version, this returns simulated variants based on the selected source question and preserves the future LLM response shape.
+- 原题模式：从云端错题库抽取已有错题。
+- 变形题模式：调用变形题 API。第一版返回模拟变形题，但保留未来大模型输出结构。
 
-After answering or reviewing, the user records a result such as unfamiliar, reviewing, or mastered. These values update the question's mastery state and can later influence draw weights.
+用户完成练习后记录复盘结果，例如“仍不熟”“复习中”“已掌握”。这些状态会更新错题掌握程度，后续可用于抽题权重。
 
-### Me
+### 我的
 
-The Me tab includes:
+“我的”页面包含：
 
-- Login and logout state.
-- Account information.
-- Basic sync status.
-- Future API/provider settings if needed during development.
+- 登录和退出状态。
+- 账号信息。
+- 基础同步状态。
+- 开发阶段后端连接状态和 token 状态展示。
 
-## Backend API
+## 后端 API
 
-The backend is built with Python and FastAPI.
+后端使用 Python 和 FastAPI。
 
-### Authentication
+### 认证
 
-- `POST /auth/register`: create a user account.
-- `POST /auth/login`: return an access token.
-- `GET /me`: return the current user profile.
+- `POST /auth/register`：创建用户账号。
+- `POST /auth/login`：返回访问 token。
+- `GET /me`：返回当前用户信息。
 
-### Questions
+### 错题
 
-- `POST /questions/upload`: accept an image upload, store it, run recognition/classification, and return a draft.
-- `POST /questions/{id}/confirm`: save the user's corrected Markdown/LaTeX, subject, chapter, and metadata.
-- `GET /questions`: list questions with filters for subject, chapter, mastery, status, and search text.
-- `GET /questions/{id}`: return one question with image URL and content.
-- `PATCH /questions/{id}`: update recognized content, category, or mastery state.
+- `POST /questions/upload`：接收图片上传，保存图片，执行识别和分类，返回草稿。
+- `POST /questions/{id}/confirm`：保存用户修正后的 Markdown/LaTeX、科目、章节和元数据。
+- `GET /questions`：按科目、章节、掌握程度、状态和搜索文本筛选错题。
+- `GET /questions/{id}`：返回单道错题详情。
+- `PATCH /questions/{id}`：更新识别内容、分类或掌握状态。
 
-### Practice
+### 练习
 
-- `POST /practice/original`: draw existing wrong questions using filters and optional count.
-- `POST /practice/variant`: return a simulated variant question for one or more source questions.
-- `POST /practice/{id}/review`: record the user's review result.
+- `POST /practice/original`：按筛选条件和数量抽取已有错题。
+- `POST /practice/variant`：为一道或多道源错题返回模拟变形题。
+- `POST /practice/{id}/review`：记录练习复盘结果。
 
-## Data Model
+## 数据模型
 
 ### User
 
@@ -136,79 +136,79 @@ The backend is built with Python and FastAPI.
 - `created_at`
 - `updated_at`
 
-`content_md_latex` is the canonical recognized and corrected question body. It can include Markdown paragraphs, code-style snippets when needed, inline formulas such as `$O(n \log n)$`, and block formulas such as `$$...$$`.
+`content_md_latex` 是错题识别并校正后的标准题干。它可以包含 Markdown 段落、必要的代码片段、行内公式如 `$O(n \log n)$`，以及块级公式如 `$$...$$`。
 
 ### PracticeSession
 
 - `id`
 - `user_id`
-- `mode`: `original` or `variant`
+- `mode`：`original` 或 `variant`
 - `question_ids`
 - `variant_payload`
 - `result`
 - `created_at`
 - `reviewed_at`
 
-`variant_payload` stores the simulated variant response in the first version and will later store the real LLM output.
+`variant_payload` 第一版保存模拟变形题响应，后续保存真实大模型输出。
 
-## OCR and Classification Pipeline
+## OCR 与分类流程
 
-The upload pipeline is:
+上传处理流程：
 
-1. Validate image size and type.
-2. Store the image in object storage or a development storage directory.
-3. Call OCR/formula-recognition provider.
-4. Normalize provider output into Markdown plus LaTeX.
-5. Run subject/chapter classification.
-6. Return a draft question to the app.
+1. 校验图片大小和类型。
+2. 将图片保存到对象存储或开发环境目录。
+3. 调用 OCR/公式识别服务。
+4. 将服务输出归一化为 Markdown + LaTeX。
+5. 执行科目/章节分类。
+6. 向 App 返回待确认草稿。
 
-The first classifier uses a rule-based keyword map with confidence scoring and user correction. It is intentionally simple and inspectable. Example hints:
+第一版分类器使用规则关键词和置信度评分，重点是简单、可解释、可人工修正。示例关键词：
 
-- Data Structures: tree, binary tree, graph, hash, heap, B-tree, sorting, search.
-- Computer Organization: cache, pipeline, instruction cycle, addressing mode, ALU, memory hierarchy.
-- Operating Systems: process, thread, semaphore, deadlock, scheduling, virtual memory, page replacement.
-- Computer Networks: TCP, UDP, IP, routing, subnet, congestion control, HTTP, DNS.
+- 数据结构：树、二叉树、图、哈希、堆、B 树、排序、查找。
+- 计算机组成原理：Cache、流水线、指令周期、寻址方式、ALU、存储层次。
+- 操作系统：进程、线程、信号量、死锁、调度、虚拟内存、页面置换。
+- 计算机网络：TCP、UDP、IP、路由、子网、拥塞控制、HTTP、DNS。
 
-If classification confidence is low, the backend still returns the recognized draft, but the app asks the user to choose subject and chapter before confirming.
+如果分类置信度较低，后端仍返回识别草稿，但 App 在确认入库前要求用户手动选择科目和章节。
 
-## Error Handling
+## 错误处理
 
-- Upload failure: app shows retry and does not create a question.
-- Image stored but recognition failed: backend creates a draft with image URL and failed status so the user can retry recognition or fill content manually.
-- OCR returns poor output: user can correct Markdown/LaTeX before saving.
-- Classification confidence is low: app requires manual subject and chapter selection.
-- Authentication expires: app returns to login and keeps local unsaved upload state when feasible.
+- 上传失败：App 显示重试入口，不创建错题。
+- 图片已保存但识别失败：后端创建失败状态草稿，用户可重试识别或手动填写内容。
+- OCR 输出质量差：用户可在保存前修正 Markdown/LaTeX。
+- 分类置信度低：App 要求用户手动选择科目和章节。
+- 认证过期：App 返回登录状态，并尽量保留本地未保存的上传状态。
 
-## Testing Scope
+## 测试范围
 
 ### Android
 
-- Login/logout state.
-- Photo or image-selection flow.
-- Upload progress and retry states.
-- Recognition review and manual correction.
-- Question-bank filters.
-- Original and variant practice mode switching.
+- 登录和退出状态。
+- 拍照或选图流程。
+- 上传进度和重试状态。
+- 识别结果查看和人工校正。
+- 题库筛选。
+- 原题练习和变形题练习模式切换。
 
-### Backend
+### 后端
 
-- Authentication and authorization.
-- Upload validation.
-- Question draft creation and confirmation.
-- Question listing filters.
-- Rule-based classification.
-- Simulated variant-question response shape.
-- Permission checks so users can access only their own questions and practice sessions.
+- 认证和权限。
+- 上传校验。
+- 错题草稿创建和确认入库。
+- 错题列表筛选。
+- 规则分类器。
+- 模拟变形题响应结构。
+- 权限隔离：用户只能访问自己的错题和练习记录。
 
-## Implementation Notes
+## 实施说明
 
-The existing project is a minimal Android Jetpack Compose app. The implementation should keep changes incremental:
+当前项目是一个最小 Jetpack Compose Android 工程。实现应保持增量推进：
 
-1. Establish app navigation and screen shells.
-2. Add backend project separately.
-3. Define shared API contracts.
-4. Implement authentication and question upload.
-5. Add recognition and classification boundaries.
-6. Add question bank and practice flows.
+1. 建立 App 导航和页面骨架。
+2. 添加后端项目。
+3. 定义前后端共享 API 契约。
+4. 实现认证和错题上传。
+5. 添加识别与分类边界。
+6. 添加题库和练习流程。
 
-The current workspace is not a git repository, so this design document cannot be committed until git is initialized or the project is placed inside a repository.
+项目已建立 Git 仓库，后续每个功能完成并确认后提交到 GitHub。

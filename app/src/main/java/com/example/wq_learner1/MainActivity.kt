@@ -42,6 +42,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.wq_learner1.domain.SubjectClassifier
+import com.example.wq_learner1.network.ApiConfig
+import com.example.wq_learner1.network.SessionState
+import com.example.wq_learner1.network.WqLearnerApiClient
 import com.example.wq_learner1.ui.theme.WQlearner1Theme
 
 private enum class MainTab(val label: String) {
@@ -74,6 +77,8 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun WqLearnerApp() {
     var selectedTab by remember { mutableStateOf(MainTab.Upload) }
+    val sessionState = remember { SessionState() }
+    val apiClient = remember { WqLearnerApiClient() }
     val questions = remember {
         mutableStateListOf(
             MistakeQuestion(
@@ -130,7 +135,7 @@ private fun WqLearnerApp() {
                 )
                 MainTab.Bank -> QuestionBankScreen(questions = questions)
                 MainTab.Practice -> PracticeScreen(questions = questions)
-                MainTab.Me -> MeScreen()
+                MainTab.Me -> MeScreen(sessionState = sessionState, apiClient = apiClient)
             }
         }
     }
@@ -151,7 +156,7 @@ private fun UploadScreen(
     ScreenColumn {
         ScreenTitle(
             title = "上传错题",
-            subtitle = "第一版模拟拍照上传后的识别草稿；后端 API 已提供真实上传入口。",
+            subtitle = "当前仍是本地草稿流；后续功能会把这里接到真实上传 API。",
         )
 
         InfoCard(title = "图片草稿") {
@@ -169,7 +174,7 @@ private fun UploadScreen(
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = { status = "已模拟拍照并上传到识别服务" }) {
+                Button(onClick = { status = "已模拟拍照并生成识别草稿" }) {
                     Text("拍照")
                 }
                 OutlinedButton(onClick = { status = "已模拟从相册选择图片" }) {
@@ -210,7 +215,7 @@ private fun UploadScreen(
             Button(
                 onClick = {
                     onSave(draftContent, subject, chapter)
-                    status = "已保存到云端错题库"
+                    status = "已保存到本地错题列表"
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -239,7 +244,7 @@ private fun QuestionBankScreen(questions: List<MistakeQuestion>) {
     ScreenColumn {
         ScreenTitle(
             title = "云端错题库",
-            subtitle = "按 11408 科目和章节筛选，查看 Markdown + LaTeX 识别结果。",
+            subtitle = "当前展示本地样例数据；网络客户端已准备好读取后端 /questions。",
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             subjects.forEach { subject ->
@@ -306,21 +311,83 @@ private fun PracticeScreen(questions: List<MistakeQuestion>) {
 }
 
 @Composable
-private fun MeScreen() {
+private fun MeScreen(
+    sessionState: SessionState,
+    apiClient: WqLearnerApiClient,
+) {
+    var email by remember { mutableStateOf(sessionState.email ?: "demo@example.com") }
+    var password by remember { mutableStateOf("secret123") }
+    var status by remember {
+        mutableStateOf(if (sessionState.isLoggedIn) "已登录" else "未登录")
+    }
+    var tokenPreview by remember {
+        mutableStateOf(sessionState.accessToken?.take(8).orEmpty())
+    }
+
+    fun loginAfterOptionalRegister(registerFirst: Boolean) {
+        status = if (registerFirst) "正在注册并登录..." else "正在登录..."
+        Thread {
+            try {
+                if (registerFirst) {
+                    apiClient.register(email, password)
+                }
+                val session = apiClient.login(email, password)
+                sessionState.setSession(session, email)
+                tokenPreview = session.accessToken.take(8)
+                status = "已连接后端并保存 token"
+            } catch (error: Exception) {
+                status = "后端连接失败：${error.message}"
+            }
+        }.start()
+    }
+
     ScreenColumn {
         ScreenTitle(
             title = "我的",
-            subtitle = "账号和云端同步入口。第一版使用演示账号展示登录状态。",
+            subtitle = "这里已经接入 Android HTTP 客户端。开发机后端地址：${ApiConfig.DEFAULT_BASE_URL}",
         )
-        InfoCard(title = "账号") {
-            Text("demo@example.com", fontWeight = FontWeight.Bold)
+        InfoCard(title = "账号登录") {
+            OutlinedTextField(
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("邮箱") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("密码") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = { loginAfterOptionalRegister(registerFirst = false) }) {
+                    Text("登录")
+                }
+                OutlinedButton(onClick = { loginAfterOptionalRegister(registerFirst = true) }) {
+                    Text("注册并登录")
+                }
+                OutlinedButton(
+                    onClick = {
+                        sessionState.clear()
+                        tokenPreview = ""
+                        status = "已退出登录"
+                    },
+                ) {
+                    Text("退出")
+                }
+            }
+        }
+        InfoCard(title = "连接状态") {
+            Text(status, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
-            Text("云端错题库同步：已连接")
+            Text("Token：${tokenPreview.ifBlank { "无" }}")
+            Text("后端：${ApiConfig.DEFAULT_BASE_URL}")
         }
         InfoCard(title = "开发状态") {
-            Text("Android：本地 MVP 界面")
-            Text("后端：FastAPI 内存版 API")
-            Text("变形题：模拟返回，保留大模型接口")
+            Text("Android：HTTP 客户端和 token 状态已完成")
+            Text("后端：FastAPI + SQLite API")
+            Text("下一步：题库页接入真实 /questions 数据")
         }
     }
 }
@@ -341,7 +408,11 @@ private fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
 private fun ScreenTitle(title: String, subtitle: String) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = subtitle,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
