@@ -3,6 +3,7 @@ package com.example.wq_learner1
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.core.content.FileProvider
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
@@ -10,6 +11,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import android.graphics.BitmapFactory
 import android.net.Uri
+import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.wq_learner1.data.CameraCaptureState
 import com.example.wq_learner1.data.ImageSelectionState
 import com.example.wq_learner1.data.MistakeQuestion
 import com.example.wq_learner1.data.QuestionBankRepository
@@ -173,11 +176,25 @@ private fun UploadScreen(
     val context = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var imageState by remember { mutableStateOf(ImageSelectionState()) }
+    var cameraState by remember { mutableStateOf(CameraCaptureState()) }
+    var status by remember { mutableStateOf("已生成识别草稿，等待校正") }
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri != null) {
             imageState = imageState.select(uri.toString())
+        }
+    }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+    ) { success ->
+        val result = cameraState.complete(success)
+        cameraState = result.cameraState
+        if (result.imageState != null) {
+            imageState = result.imageState
+            status = "已拍照并生成图片预览"
+        } else {
+            status = "已取消拍照"
         }
     }
     var draftContent by remember {
@@ -186,7 +203,16 @@ private fun UploadScreen(
     val classification = SubjectClassifier.classify(draftContent)
     var subject by remember { mutableStateOf(classification.subject) }
     var chapter by remember { mutableStateOf(classification.chapter) }
-    var status by remember { mutableStateOf("已生成识别草稿，等待校正") }
+
+    fun createCameraImageUri(): Uri {
+        val imageDir = File(context.cacheDir, "camera-images").apply { mkdirs() }
+        val imageFile = File.createTempFile("wq-question-", ".jpg", imageDir)
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            imageFile,
+        )
+    }
 
     fun uploadSelectedImage() {
         val token = sessionState.accessToken
@@ -258,7 +284,18 @@ private fun UploadScreen(
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(onClick = { status = "已模拟拍照并生成识别草稿" }) {
+                Button(
+                    onClick = {
+                        runCatching {
+                            val cameraUri = createCameraImageUri()
+                            cameraState = cameraState.prepare(cameraUri.toString())
+                            status = "正在打开系统相机..."
+                            cameraLauncher.launch(cameraUri)
+                        }.onFailure { error ->
+                            status = "无法打开相机：${error.message}"
+                        }
+                    },
+                ) {
                     Text("拍照")
                 }
                 OutlinedButton(
