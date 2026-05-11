@@ -139,6 +139,12 @@ data class ApiPractice(
     val variant: ApiVariantQuestion? = null,
 )
 
+data class ApiHealth(
+    val status: String,
+    val service: String,
+    val runtime: String,
+)
+
 class SessionState {
     var accessToken: String? = null
         private set
@@ -266,6 +272,42 @@ class WqLearnerApiClient(
         return response.body.toQuestion()
     }
 
+    fun updateQuestion(
+        token: String,
+        questionId: String,
+        contentMdLatex: String,
+        subject: String,
+        chapter: String,
+        mastery: String,
+    ): ApiQuestion {
+        val response = transport.send(
+            HttpRequest(
+                method = "PATCH",
+                path = "/questions/${questionId.urlEncode()}",
+                headers = mapOf("Authorization" to "Bearer $token"),
+                body = questionUpdateBody(
+                    contentMdLatex = contentMdLatex,
+                    subject = subject,
+                    chapter = chapter,
+                    mastery = mastery,
+                ),
+            ),
+        )
+        requireSuccess(response)
+        return response.body.toQuestion()
+    }
+
+    fun healthCheck(): ApiHealth {
+        val response = transport.send(
+            HttpRequest(
+                method = "GET",
+                path = "/health",
+            ),
+        )
+        requireSuccess(response)
+        return response.body.toHealth()
+    }
+
     fun createVariantPractice(
         token: String,
         sourceQuestionId: String,
@@ -289,6 +331,15 @@ class WqLearnerApiClient(
 
     private fun variantPracticeBody(sourceQuestionId: String, topic: String): String {
         return """{"source_question_id":"${sourceQuestionId.jsonEscape()}","topic":"${topic.jsonEscape()}"}"""
+    }
+
+    private fun questionUpdateBody(
+        contentMdLatex: String,
+        subject: String,
+        chapter: String,
+        mastery: String,
+    ): String {
+        return """{"content_md_latex":"${contentMdLatex.jsonEscape()}","subject":"${subject.jsonEscape()}","chapter":"${chapter.jsonEscape()}","mastery":"${mastery.jsonEscape()}"}"""
     }
 
     private fun multipartImageBody(
@@ -348,6 +399,14 @@ private fun String.toPractice(): ApiPractice {
         } else {
             null
         },
+    )
+}
+
+private fun String.toHealth(): ApiHealth {
+    return ApiHealth(
+        status = jsonValue("status"),
+        service = jsonValue("service"),
+        runtime = jsonValue("runtime"),
     )
 }
 

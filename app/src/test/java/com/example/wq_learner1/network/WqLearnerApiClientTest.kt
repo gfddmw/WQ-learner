@@ -207,6 +207,64 @@ class WqLearnerApiClientTest {
     }
 
     @Test
+    fun updateQuestionSendsPatchAndParsesUpdatedQuestion() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """
+                    {
+                      "id":"Q-001",
+                      "user_id":"U-1",
+                      "image_url":"oss://wq-learner/q1.jpg",
+                      "content_md_latex":"Updated ${'$'}A^2=A${'$'}.",
+                      "subject":"数学",
+                      "chapter":"线性代数/矩阵论",
+                      "status":"confirmed",
+                      "mastery":"mastered"
+                    }
+                """.trimIndent(),
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        val updated = client.updateQuestion(
+            token = "abc123",
+            questionId = "Q-001",
+            contentMdLatex = "Updated ${'$'}A^2=A${'$'}.",
+            subject = "数学",
+            chapter = "线性代数/矩阵论",
+            mastery = "mastered",
+        )
+
+        assertEquals("PATCH", transport.lastRequest.method)
+        assertEquals("/questions/Q-001", transport.lastRequest.path)
+        assertEquals("Bearer abc123", transport.lastRequest.headers["Authorization"])
+        assertTrue(transport.lastRequest.body.contains("Updated ${'$'}A^2=A${'$'}."))
+        assertTrue(transport.lastRequest.body.contains("mastered"))
+        assertEquals("Q-001", updated.id)
+        assertEquals("mastered", updated.mastery)
+    }
+
+    @Test
+    fun healthCheckCallsCloudHealthEndpoint() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """{"status":"ok","service":"wq-learner-api","runtime":"fastapi"}""",
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        val health = client.healthCheck()
+
+        assertEquals("GET", transport.lastRequest.method)
+        assertEquals("/health", transport.lastRequest.path)
+        assertEquals("ok", health.status)
+        assertEquals("wq-learner-api", health.service)
+        assertEquals("fastapi", health.runtime)
+    }
+
+    @Test
     fun sessionStateStoresAndClearsLogin() {
         val state = SessionState()
 
