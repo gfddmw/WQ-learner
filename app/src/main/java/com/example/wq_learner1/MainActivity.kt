@@ -3,10 +3,15 @@ package com.example.wq_learner1
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,9 +45,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.wq_learner1.data.ImageSelectionState
 import com.example.wq_learner1.data.MistakeQuestion
 import com.example.wq_learner1.data.QuestionBankRepository
 import com.example.wq_learner1.data.QuestionBankResult
@@ -147,6 +156,15 @@ private fun WqLearnerApp() {
 private fun UploadScreen(
     onSave: (content: String, subject: String, chapter: String) -> Unit,
 ) {
+    val context = LocalContext.current
+    var imageState by remember { mutableStateOf(ImageSelectionState()) }
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        if (uri != null) {
+            imageState = imageState.select(uri.toString())
+        }
+    }
     var draftContent by remember {
         mutableStateOf("二叉树遍历与哈希查找综合题。请分析遍历过程，并写出平均时间复杂度 ${'$'}O(n)${'$'}。")
     }
@@ -172,17 +190,41 @@ private fun UploadScreen(
                     ),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("拍照 / 相册图片预览")
+                SelectedImagePreview(
+                    selectedImageUri = imageState.selectedImageUri,
+                    fallbackLabel = imageState.previewLabel,
+                )
             }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Button(onClick = { status = "已模拟拍照并生成识别草稿" }) {
                     Text("拍照")
                 }
-                OutlinedButton(onClick = { status = "已模拟从相册选择图片" }) {
+                OutlinedButton(
+                    onClick = {
+                        galleryLauncher.launch("image/*")
+                        status = "正在打开系统相册..."
+                    },
+                ) {
                     Text("相册")
                 }
+                if (imageState.hasImage) {
+                    OutlinedButton(
+                        onClick = {
+                            imageState = imageState.clear()
+                            status = "已清除所选图片"
+                        },
+                    ) {
+                        Text("清除")
+                    }
+                }
             }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = imageState.previewLabel,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
 
         InfoCard(title = "识别校正") {
@@ -230,6 +272,34 @@ private fun UploadScreen(
             color = MaterialTheme.colorScheme.primary,
             style = MaterialTheme.typography.bodyMedium,
         )
+    }
+}
+
+@Composable
+private fun SelectedImagePreview(
+    selectedImageUri: String?,
+    fallbackLabel: String,
+) {
+    val context = LocalContext.current
+    val bitmap = remember(selectedImageUri) {
+        selectedImageUri?.let { uriText ->
+            runCatching {
+                context.contentResolver.openInputStream(Uri.parse(uriText))?.use { input ->
+                    BitmapFactory.decodeStream(input)
+                }
+            }.getOrNull()
+        }
+    }
+
+    if (bitmap != null) {
+        Image(
+            bitmap = bitmap.asImageBitmap(),
+            contentDescription = "已选择的错题图片",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop,
+        )
+    } else {
+        Text(fallbackLabel)
     }
 }
 
