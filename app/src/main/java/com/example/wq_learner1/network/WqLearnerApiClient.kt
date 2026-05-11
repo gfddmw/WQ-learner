@@ -50,8 +50,13 @@ data class HttpRequest(
     val path: String,
     val headers: Map<String, String> = emptyMap(),
     val body: String = "",
+    val bodyBytes: ByteArray = ByteArray(0),
     val contentType: String = "application/json; charset=utf-8",
-)
+) {
+    fun payloadBytes(): ByteArray {
+        return if (bodyBytes.isNotEmpty()) bodyBytes else body.toByteArray(Charsets.UTF_8)
+    }
+}
 
 data class HttpResponse(
     val statusCode: Int,
@@ -77,10 +82,11 @@ class UrlConnectionTransport(
             request.headers.forEach { (name, value) -> setRequestProperty(name, value) }
         }
 
-        if (request.body.isNotEmpty()) {
+        val payloadBytes = request.payloadBytes()
+        if (payloadBytes.isNotEmpty()) {
             connection.doOutput = true
             connection.outputStream.use { stream ->
-                stream.write(request.body.toByteArray(Charsets.UTF_8))
+                stream.write(payloadBytes)
             }
         }
 
@@ -193,8 +199,55 @@ class WqLearnerApiClient(
         return response.body.jsonObjects().map { it.toQuestion() }
     }
 
+    fun uploadQuestion(
+        token: String,
+        imageBytes: ByteArray,
+        fileName: String,
+        contentType: String,
+    ): ApiQuestion {
+        val boundary = "----WqLearnerUploadBoundary"
+        val response = transport.send(
+            HttpRequest(
+                method = "POST",
+                path = "/questions/upload",
+                headers = mapOf("Authorization" to "Bearer $token"),
+                bodyBytes = multipartImageBody(
+                    boundary = boundary,
+                    imageBytes = imageBytes,
+                    fileName = fileName,
+                    contentType = contentType,
+                ),
+                contentType = "multipart/form-data; boundary=$boundary",
+            ),
+        )
+        requireSuccess(response)
+        return response.body.toQuestion()
+    }
+
     private fun authBody(email: String, password: String): String {
         return """{"email":"${email.jsonEscape()}","password":"${password.jsonEscape()}"}"""
+    }
+
+    private fun multipartImageBody(
+        boundary: String,
+        imageBytes: ByteArray,
+        fileName: String,
+        contentType: String,
+    ): ByteArray {
+        val safeFileName = fileName.ifBlank { "question.jpg" }.replace("\"", "")
+        val prefix = buildString {
+            append("--")
+            append(boundary)
+            append("\r\n")
+            append("Content-Disposition: form-data; name=\"image\"; filename=\"")
+            append(safeFileName)
+            append("\"\r\n")
+            append("Content-Type: ")
+            append(contentType.ifBlank { "image/jpeg" })
+            append("\r\n\r\n")
+        }.toByteArray(Charsets.UTF_8)
+        val suffix = "\r\n--$boundary--\r\n".toByteArray(Charsets.UTF_8)
+        return prefix + imageBytes + suffix
     }
 
     private fun requireSuccess(response: HttpResponse) {

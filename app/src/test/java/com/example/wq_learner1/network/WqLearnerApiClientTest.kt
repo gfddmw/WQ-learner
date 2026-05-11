@@ -57,6 +57,46 @@ class WqLearnerApiClientTest {
     }
 
     @Test
+    fun uploadQuestionSendsMultipartImageAndParsesDraft() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """
+                    {
+                      "id":"Q-UPLOAD",
+                      "user_id":"U-1",
+                      "image_url":"/uploads/users/U-1/questions/image.jpg",
+                      "content_md_latex":"Uploaded draft ${'$'}O(n)${'$'}.",
+                      "subject":"数据结构",
+                      "chapter":"树与二叉树",
+                      "status":"draft",
+                      "mastery":"unfamiliar"
+                    }
+                """.trimIndent(),
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        val draft = client.uploadQuestion(
+            token = "abc123",
+            imageBytes = byteArrayOf(0x01, 0x23, 0x45),
+            fileName = "mistake.jpg",
+            contentType = "image/jpeg",
+        )
+
+        assertEquals("Q-UPLOAD", draft.id)
+        assertEquals("draft", draft.status)
+        assertEquals("POST", transport.lastRequest.method)
+        assertEquals("/questions/upload", transport.lastRequest.path)
+        assertEquals("Bearer abc123", transport.lastRequest.headers["Authorization"])
+        assertTrue(transport.lastRequest.contentType.startsWith("multipart/form-data; boundary="))
+        val bodyText = transport.lastRequest.bodyBytes.toString(Charsets.ISO_8859_1)
+        assertTrue(bodyText.contains("""name="image"; filename="mistake.jpg""""))
+        assertTrue(bodyText.contains("Content-Type: image/jpeg"))
+        assertTrue(transport.lastRequest.bodyBytes.containsSubsequence(byteArrayOf(0x01, 0x23, 0x45)))
+    }
+
+    @Test
     fun sessionStateStoresAndClearsLogin() {
         val state = SessionState()
 
@@ -82,5 +122,13 @@ private class FakeTransport(
     override fun send(request: HttpRequest): HttpResponse {
         lastRequest = request
         return response
+    }
+}
+
+private fun ByteArray.containsSubsequence(expected: ByteArray): Boolean {
+    return indices.any { start ->
+        start + expected.size <= size && expected.indices.all { offset ->
+            this[start + offset] == expected[offset]
+        }
     }
 }

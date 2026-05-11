@@ -129,6 +129,8 @@ private fun WqLearnerApp() {
         ) {
             when (selectedTab) {
                 MainTab.Upload -> UploadScreen(
+                    sessionState = sessionState,
+                    apiClient = apiClient,
                     onSave = { content, subject, chapter ->
                         questions.add(
                             0,
@@ -164,9 +166,12 @@ private fun WqLearnerApp() {
 
 @Composable
 private fun UploadScreen(
+    sessionState: SessionState,
+    apiClient: WqLearnerApiClient,
     onSave: (content: String, subject: String, chapter: String) -> Unit,
 ) {
     val context = LocalContext.current
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var imageState by remember { mutableStateOf(ImageSelectionState()) }
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -183,10 +188,56 @@ private fun UploadScreen(
     var chapter by remember { mutableStateOf(classification.chapter) }
     var status by remember { mutableStateOf("已生成识别草稿，等待校正") }
 
+    fun uploadSelectedImage() {
+        val token = sessionState.accessToken
+        if (token.isNullOrBlank()) {
+            status = "请先在“我的”页面登录后再上传错题。"
+            return
+        }
+        val selectedImageUri = imageState.selectedImageUri
+        if (selectedImageUri.isNullOrBlank()) {
+            status = "请先选择一张错题图片。"
+            return
+        }
+
+        val imageUri = Uri.parse(selectedImageUri)
+        status = "正在上传图片并生成错题草稿..."
+        Thread {
+            try {
+                val imageBytes = context.contentResolver.openInputStream(imageUri)?.use { input ->
+                    input.readBytes()
+                } ?: throw IllegalStateException("无法读取所选图片")
+                val detectedContentType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
+                val fileName = imageUri.lastPathSegment
+                    ?.substringAfterLast('/')
+                    ?.ifBlank { "question-upload.jpg" }
+                    ?: "question-upload.jpg"
+                val draft = apiClient.uploadQuestion(
+                    token = token,
+                    imageBytes = imageBytes,
+                    fileName = fileName,
+                    contentType = detectedContentType,
+                )
+
+                mainHandler.post {
+                    draftContent = draft.contentMdLatex
+                    subject = draft.subject
+                    chapter = draft.chapter
+                    onSave(draft.contentMdLatex, draft.subject, draft.chapter)
+                    status = "已上传到云端并生成错题草稿：${draft.id}"
+                }
+            } catch (error: Exception) {
+                mainHandler.post {
+                    status = "图片上传失败：${error.message}"
+                }
+            }
+        }.start()
+    }
+
     ScreenColumn {
         ScreenTitle(
             title = "上传错题",
-            subtitle = "当前仍是本地草稿流；后续功能会把这里接到真实上传 API。",
+            subtitle = "选择图片后会上传到当前后端 API，并返回错题草稿。",
         )
 
         InfoCard(title = "图片草稿") {
@@ -267,13 +318,10 @@ private fun UploadScreen(
             }
             Spacer(Modifier.height(12.dp))
             Button(
-                onClick = {
-                    onSave(draftContent, subject, chapter)
-                    status = "已保存到本地错题列表"
-                },
+                onClick = { uploadSelectedImage() },
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("确认入库")
+                Text("上传并入库")
             }
         }
 
