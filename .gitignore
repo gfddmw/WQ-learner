@@ -1,0 +1,22 @@
+# Gradle and Android build outputs
+.gradle/
+build/
+app/build/
+
+# Local IDE and machine-specific files
+.idea/
+local.properties
+.kotlin/
+
+# Python caches and local data
+__pycache__/
+*.py[cod]
+.pytest_cache/
+backend/data/
+
+# Superpowers brainstorming scratch files
+.superpowers/
+
+# OS files
+.DS_Store
+Thumbs.db
