@@ -95,11 +95,18 @@ pip install -r requirements.txt -t .
 
 ## Android 接入方式
 
-本功能只准备后端基础。Android 端会在后续“Android 接入函数计算公网 API 地址”功能中改造：
+Android 端已经支持在“我的”页切换 API 地址：
 
 - Debug 环境继续使用本地开发地址。
 - 云端环境使用函数计算 HTTP 触发器地址或自定义域名。
 - “我的”页显示当前 API 地址，方便排查连接问题。
+- 切换 API 地址后会清除当前 token，需要重新登录。
+
+拿到函数计算 HTTP 触发器地址后，可以填入“我的”页的“API 地址”输入框，例如：
+
+```text
+https://example.cn-hangzhou.fcapp.run
+```
 
 ## 注意事项
 

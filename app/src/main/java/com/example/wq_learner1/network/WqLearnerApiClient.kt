@@ -7,7 +7,41 @@ import java.net.URL
 import java.net.URLEncoder
 
 object ApiConfig {
-    const val DEFAULT_BASE_URL = "http://10.0.2.2:8000"
+    const val LOCAL_DEVELOPMENT_BASE_URL = "http://10.0.2.2:8000"
+    const val DEFAULT_BASE_URL = LOCAL_DEVELOPMENT_BASE_URL
+
+    fun normalizeBaseUrl(input: String): String {
+        return input.trim().trimEnd('/').ifBlank { LOCAL_DEVELOPMENT_BASE_URL }
+    }
+
+    fun isLocalDevelopmentBaseUrl(input: String): Boolean {
+        return normalizeBaseUrl(input) == LOCAL_DEVELOPMENT_BASE_URL
+    }
+}
+
+class ApiEndpointState(
+    initialBaseUrl: String = ApiConfig.DEFAULT_BASE_URL,
+) {
+    var baseUrl: String = ApiConfig.normalizeBaseUrl(initialBaseUrl)
+        private set
+
+    val environmentLabel: String
+        get() = if (ApiConfig.isLocalDevelopmentBaseUrl(baseUrl)) {
+            "本地开发"
+        } else {
+            "函数计算公网 API"
+        }
+
+    val statusText: String
+        get() = "当前后端：$baseUrl（$environmentLabel）"
+
+    fun updateBaseUrl(input: String) {
+        baseUrl = ApiConfig.normalizeBaseUrl(input)
+    }
+
+    fun withBaseUrl(input: String): ApiEndpointState {
+        return ApiEndpointState(input)
+    }
 }
 
 data class HttpRequest(
@@ -28,10 +62,12 @@ interface HttpTransport {
 }
 
 class UrlConnectionTransport(
-    private val baseUrl: String = ApiConfig.DEFAULT_BASE_URL,
+    baseUrl: String = ApiConfig.DEFAULT_BASE_URL,
 ) : HttpTransport {
+    private val baseUrl = ApiConfig.normalizeBaseUrl(baseUrl)
+
     override fun send(request: HttpRequest): HttpResponse {
-        val url = URL(baseUrl.trimEnd('/') + request.path)
+        val url = URL(baseUrl + request.path)
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = request.method
             connectTimeout = 10_000
@@ -111,6 +147,8 @@ interface QuestionApi {
 class WqLearnerApiClient(
     private val transport: HttpTransport = UrlConnectionTransport(),
 ) : QuestionApi {
+    constructor(baseUrl: String) : this(UrlConnectionTransport(baseUrl))
+
     fun register(email: String, password: String) {
         val response = transport.send(
             HttpRequest(

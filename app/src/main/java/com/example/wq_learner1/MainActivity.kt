@@ -57,6 +57,7 @@ import com.example.wq_learner1.data.QuestionBankRepository
 import com.example.wq_learner1.data.QuestionBankResult
 import com.example.wq_learner1.domain.SubjectClassifier
 import com.example.wq_learner1.network.ApiConfig
+import com.example.wq_learner1.network.ApiEndpointState
 import com.example.wq_learner1.network.SessionState
 import com.example.wq_learner1.network.WqLearnerApiClient
 import com.example.wq_learner1.ui.theme.WQlearner1Theme
@@ -84,8 +85,9 @@ class MainActivity : ComponentActivity() {
 private fun WqLearnerApp() {
     var selectedTab by remember { mutableStateOf(MainTab.Upload) }
     val sessionState = remember { SessionState() }
-    val apiClient = remember { WqLearnerApiClient() }
-    val questionBankRepository = remember { QuestionBankRepository(apiClient) }
+    var endpointState by remember { mutableStateOf(ApiEndpointState()) }
+    val apiClient = remember(endpointState.baseUrl) { WqLearnerApiClient(endpointState.baseUrl) }
+    val questionBankRepository = remember(apiClient) { QuestionBankRepository(apiClient) }
     val questions = remember {
         mutableStateListOf(
             MistakeQuestion(
@@ -146,7 +148,15 @@ private fun WqLearnerApp() {
                     repository = questionBankRepository,
                 )
                 MainTab.Practice -> PracticeScreen(questions = questions)
-                MainTab.Me -> MeScreen(sessionState = sessionState, apiClient = apiClient)
+                MainTab.Me -> MeScreen(
+                    sessionState = sessionState,
+                    apiClient = apiClient,
+                    endpointState = endpointState,
+                    onBaseUrlChange = { nextBaseUrl ->
+                        endpointState = endpointState.withBaseUrl(nextBaseUrl)
+                        sessionState.clear()
+                    },
+                )
             }
         }
     }
@@ -422,9 +432,12 @@ private fun PracticeScreen(questions: List<MistakeQuestion>) {
 private fun MeScreen(
     sessionState: SessionState,
     apiClient: WqLearnerApiClient,
+    endpointState: ApiEndpointState,
+    onBaseUrlChange: (String) -> Unit,
 ) {
     var email by remember { mutableStateOf(sessionState.email ?: "demo@example.com") }
     var password by remember { mutableStateOf("secret123") }
+    var endpointDraft by remember(endpointState.baseUrl) { mutableStateOf(endpointState.baseUrl) }
     var status by remember {
         mutableStateOf(if (sessionState.isLoggedIn) "已登录" else "未登录")
     }
@@ -452,8 +465,40 @@ private fun MeScreen(
     ScreenColumn {
         ScreenTitle(
             title = "我的",
-            subtitle = "这里已经接入 Android HTTP 客户端。开发机后端地址：${ApiConfig.DEFAULT_BASE_URL}",
+            subtitle = "这里可以切换本地开发地址或函数计算公网 API 地址。",
         )
+        InfoCard(title = "后端环境") {
+            OutlinedTextField(
+                value = endpointDraft,
+                onValueChange = { endpointDraft = it },
+                label = { Text("API 地址") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = {
+                        onBaseUrlChange(endpointDraft)
+                        tokenPreview = ""
+                        status = "已切换后端地址，请重新登录"
+                    },
+                ) {
+                    Text("应用地址")
+                }
+                OutlinedButton(
+                    onClick = {
+                        endpointDraft = ApiConfig.LOCAL_DEVELOPMENT_BASE_URL
+                        onBaseUrlChange(ApiConfig.LOCAL_DEVELOPMENT_BASE_URL)
+                        tokenPreview = ""
+                        status = "已切换为本地开发地址"
+                    },
+                ) {
+                    Text("本地开发")
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(endpointState.statusText)
+        }
         InfoCard(title = "账号登录") {
             OutlinedTextField(
                 value = email,
@@ -490,12 +535,12 @@ private fun MeScreen(
             Text(status, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text("Token：${tokenPreview.ifBlank { "无" }}")
-            Text("后端：${ApiConfig.DEFAULT_BASE_URL}")
+            Text(endpointState.statusText)
         }
         InfoCard(title = "开发状态") {
             Text("Android：HTTP 客户端和 token 状态已完成")
-            Text("后端：FastAPI + SQLite API")
-            Text("下一步：上传页接入真实图片选择")
+            Text("后端：FastAPI + 函数计算启动基础")
+            Text("下一步：接入云端数据库和 OSS")
         }
     }
 }
