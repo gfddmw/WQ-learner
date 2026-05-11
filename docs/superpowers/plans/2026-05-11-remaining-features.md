@@ -33,6 +33,7 @@
 9.6. 真实表格存储接入。
 10. Android 拍照并复用上传链路。
 11. OCR/公式识别服务适配器。
+11.5. 真实通义千问 VL OCR 接入。
 12. 真实大模型变形题服务适配器。
 13. 正式发布前完善。
 
@@ -253,7 +254,7 @@
 - [x] 拍照后上传页显示图片预览。
 - [x] 拍照图片可以上传到云端并生成错题草稿。
 - [x] Android 构建通过。
-- [ ] 用户确认后提交并推送到 GitHub。
+- [x] 用户确认后提交并推送到 GitHub。
 
 ## 功能 11：OCR/公式识别服务适配器
 
@@ -270,6 +271,29 @@
 - [x] 后端有可替换的 OCR 适配器。
 - [x] 上传图片后生成结构化错题草稿。
 - [x] 识别结果可在 Android 上传页校正。
+- [x] 用户确认后提交并推送到 GitHub。
+
+## 功能 11.5：真实通义千问 VL OCR 接入
+
+**目标：** 在函数计算环境中使用通义千问 VL 多模态模型识别错题图片，输出 Markdown + LaTeX、11408 科目、章节和置信度，不再只使用模拟 OCR。
+
+**当前模型配置：**
+- Provider：`dashscope`
+- Model：`qwen3-vl-plus`
+- Base URL：`https://dashscope.aliyuncs.com/compatible-mode/v1`
+
+**建议范围：**
+- 新增 DashScope/OpenAI 兼容 OCR 适配器。
+- 图片以 base64 data URL 发送给通义千问 VL。
+- 让模型只返回结构化 JSON，后端解析为 `OcrResult`。
+- 通过函数计算环境变量配置 provider、模型名和 API Key。
+- 保留 `SimulatedOcrService`，方便本地无密钥测试。
+
+**验收标准：**
+- [x] 后端测试覆盖真实 OCR 适配器的请求格式和 JSON 解析。
+- [x] 配置 `WQ_LEARNER_OCR_PROVIDER=dashscope` 后使用 `DashScopeVisionOcrService`。
+- [x] 后端依赖增加 `openai`，函数计算依赖层可构建真实 OCR 运行环境。
+- [x] 文档说明 `DASHSCOPE_API_KEY`、模型名、base URL 和依赖层配置。
 - [ ] 用户确认后提交并推送到 GitHub。
 
 ## 功能 12：真实大模型变形题服务适配器

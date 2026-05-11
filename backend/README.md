@@ -146,6 +146,17 @@ wq_practices
 
 当前默认使用 `SimulatedOcrService`，会返回一段稳定的模拟 Markdown + LaTeX 文本，并复用关键词分类器归类到 11408 科目和章节。这样上传、存储、题库刷新链路可以先完整跑通。
 
+函数计算环境配置通义千问 VL 后，会使用 `DashScopeVisionOcrService` 进行真实识别：
+
+```text
+WQ_LEARNER_OCR_PROVIDER=dashscope
+WQ_LEARNER_OCR_MODEL=qwen3-vl-plus
+DASHSCOPE_API_KEY=你的百炼 API Key
+WQ_LEARNER_DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1
+```
+
+`WQ_LEARNER_DASHSCOPE_BASE_URL` 可省略，默认使用北京地域 OpenAI 兼容接口。函数计算依赖层需要包含 `openai`。
+
 后续接入真实 OCR/视觉模型时，只需要实现同样的接口：
 
 ```text
