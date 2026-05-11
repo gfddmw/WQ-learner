@@ -1,7 +1,7 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 from uuid import uuid4
 
 
@@ -31,12 +31,53 @@ class LocalImageStorage:
 
 
 class OssImageStorage:
-    def __init__(self, bucket: str, endpoint: str) -> None:
+    def __init__(
+        self,
+        bucket: str,
+        endpoint: str,
+        bucket_client: Any | None = None,
+    ) -> None:
         self.bucket = bucket
         self.endpoint = endpoint
+        self.bucket_client = bucket_client
 
     def save_upload(self, user_id: str, content: bytes, content_type: str) -> StoredImage:
-        raise NotImplementedError("OSS 图片存储适配层已预留，真实 OSS 上传将在后续功能接入")
+        extension = extension_for_content_type(content_type)
+        object_key = f"users/{user_id}/questions/{uuid4()}.{extension}"
+        client = self.bucket_client or create_oss_bucket(
+            bucket=self.bucket,
+            endpoint=self.endpoint,
+        )
+        client.put_object(
+            object_key,
+            content,
+            headers={"Content-Type": content_type},
+        )
+        return StoredImage(
+            object_key=object_key,
+            image_url=f"oss://{self.bucket}/{object_key}",
+        )
+
+
+def create_oss_bucket(bucket: str, endpoint: str) -> Any:
+    try:
+        import oss2
+    except ImportError as error:
+        raise RuntimeError("缺少 oss2 依赖，请先安装 backend/requirements.txt") from error
+
+    access_key_id = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_ID") or os.environ.get("OSS_ACCESS_KEY_ID")
+    access_key_secret = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_SECRET") or os.environ.get("OSS_ACCESS_KEY_SECRET")
+    security_token = os.environ.get("ALIBABA_CLOUD_SECURITY_TOKEN") or os.environ.get("OSS_SECURITY_TOKEN")
+
+    if not access_key_id or not access_key_secret:
+        raise RuntimeError("缺少 OSS 访问凭证，请为函数计算绑定 RAM 角色或配置访问密钥环境变量")
+
+    auth = (
+        oss2.StsAuth(access_key_id, access_key_secret, security_token)
+        if security_token
+        else oss2.Auth(access_key_id, access_key_secret)
+    )
+    return oss2.Bucket(auth, endpoint, bucket)
 
 
 def extension_for_content_type(content_type: str) -> str:

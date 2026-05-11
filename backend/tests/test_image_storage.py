@@ -1,5 +1,3 @@
-import pytest
-
 from app.image_storage import ImageStorage, LocalImageStorage, OssImageStorage, create_image_storage
 
 
@@ -40,12 +38,45 @@ def test_create_image_storage_uses_local_storage_without_oss_bucket(monkeypatch,
     assert isinstance(storage, LocalImageStorage)
 
 
-def test_create_image_storage_uses_oss_placeholder_when_bucket_is_configured(monkeypatch):
-    monkeypatch.setenv("WQ_LEARNER_OSS_BUCKET", "wq-learner-questions")
+def test_oss_image_storage_uploads_object_and_returns_private_reference():
+    bucket = FakeOssBucket()
+    storage = OssImageStorage(
+        bucket="wq-learner",
+        endpoint="oss-cn-hangzhou.aliyuncs.com",
+        bucket_client=bucket,
+    )
+
+    stored = storage.save_upload(
+        user_id="user-1",
+        content=b"fake-image",
+        content_type="image/jpeg",
+    )
+
+    assert isinstance(storage, ImageStorage)
+    assert stored.object_key.startswith("users/user-1/questions/")
+    assert stored.object_key.endswith(".jpg")
+    assert stored.image_url == f"oss://wq-learner/{stored.object_key}"
+    assert bucket.put_calls == [
+        (
+            stored.object_key,
+            b"fake-image",
+            {"Content-Type": "image/jpeg"},
+        )
+    ]
+
+
+def test_create_image_storage_uses_oss_storage_when_bucket_is_configured(monkeypatch):
+    monkeypatch.setenv("WQ_LEARNER_OSS_BUCKET", "wq-learner")
     monkeypatch.setenv("WQ_LEARNER_OSS_ENDPOINT", "oss-cn-hangzhou.aliyuncs.com")
 
     storage = create_image_storage()
 
     assert isinstance(storage, OssImageStorage)
-    with pytest.raises(NotImplementedError, match="OSS"):
-        storage.save_upload("user-1", b"fake-image", "image/png")
+
+
+class FakeOssBucket:
+    def __init__(self):
+        self.put_calls = []
+
+    def put_object(self, key, content, headers=None):
+        self.put_calls.append((key, content, headers))

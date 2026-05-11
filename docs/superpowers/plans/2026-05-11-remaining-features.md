@@ -29,6 +29,8 @@
 7. 云端数据库适配层。
 8. OSS 图片存储适配层。
 9. Android 图片上传到云端。
+9.5. 真实 OSS 图片存储接入。
+9.6. 真实表格存储接入。
 10. Android 拍照并复用上传链路。
 11. OCR/公式识别服务适配器。
 12. 真实大模型变形题服务适配器。
@@ -173,7 +175,7 @@
 
 ## 功能 9：Android 图片上传到云端
 
-**目标：** Android 选择相册图片后，可以上传到函数计算后端，并创建错题草稿。当前阶段先打通 Android 到云端 API 的上传链路；真正写入 OSS 需要后续配置 bucket、权限和环境变量后继续接入。
+**目标：** Android 选择相册图片后，可以上传到函数计算后端，并创建错题草稿。当前阶段已打通 Android 到云端 API 的上传链路；真实 OSS 写入由功能 9.5 接入。
 
 **建议范围：**
 - 后端 `POST /questions/upload` 支持真实 multipart 图片上传。
@@ -187,6 +189,54 @@
 - [x] Android API 客户端支持 multipart 图片上传并携带登录 token。
 - [x] Android 上传页已把相册图片上传到当前云端 API。
 - [x] 上传成功后生成错题草稿并加入题库列表。
+- [x] 用户确认后提交并推送到 GitHub。
+
+## 功能 9.5：真实 OSS 图片存储接入
+
+**目标：** 函数计算后端收到 Android 上传图片后，写入阿里云 OSS 私有 bucket，并在错题记录中保存稳定的私有对象引用。
+
+**当前 OSS 配置：**
+- Bucket：`wq-learner`
+- Region：`cn-hangzhou`
+- Endpoint：`oss-cn-hangzhou.aliyuncs.com`
+- 权限：私有读写
+
+**建议范围：**
+- 将 `OssImageStorage` 从占位实现改成真实 OSS 上传。
+- 使用函数计算绑定 RAM 角色提供的临时凭证访问 OSS。
+- 保留本地文件存储作为开发和测试实现。
+- 上传后保存 `oss://wq-learner/{object_key}` 私有引用。
+- 更新后端依赖、部署文档和环境变量说明。
+
+**验收标准：**
+- [x] OSS 存储实现有 fake bucket 单元测试。
+- [x] 配置 `WQ_LEARNER_OSS_BUCKET` 后后端选择 `OssImageStorage`。
+- [x] OSS 上传携带原始图片 bytes 和 Content-Type。
+- [x] 文档说明 OSS bucket、endpoint、RAM 角色凭证和私有访问方式。
+- [ ] 用户确认后提交并推送到 GitHub。
+
+## 功能 9.6：真实表格存储接入
+
+**目标：** 函数计算后端不再依赖本地 SQLite 保存正式数据，而是使用阿里云表格存储保存用户、登录 token、错题和练习记录。
+
+**当前表格存储配置：**
+- Instance：`wq-learner`
+- Region：`cn-hangzhou`
+- 推荐 Endpoint：`https://wq-learner.cn-hangzhou.ots-internal.aliyuncs.com`
+- 公网 Endpoint：`https://wq-learner.cn-hangzhou.ots.aliyuncs.com`
+
+**建议范围：**
+- 新增 `TableStoreStore`，实现当前 Store 协议。
+- 新增表格存储 SDK adapter，业务代码不直接依赖 SDK 调用细节。
+- 保留 SQLite 作为本地开发和测试实现。
+- 配置 `WQ_LEARNER_TABLESTORE_INSTANCE` 和 `WQ_LEARNER_TABLESTORE_ENDPOINT` 后自动切换表格存储。
+- 文档说明需要创建的表和函数计算环境变量。
+
+**验收标准：**
+- [x] fake adapter 测试覆盖注册、登录、token 查询、错题草稿、题库查询。
+- [x] fake adapter 测试覆盖原题练习、变形题练习和练习结果更新。
+- [x] Store 工厂可按表格存储环境变量切换到 `TableStoreStore`。
+- [x] 文档说明表格存储实例、endpoint、表结构和凭证配置。
 - [ ] 用户确认后提交并推送到 GitHub。
 
 ## 功能 10：Android 拍照并复用上传链路
