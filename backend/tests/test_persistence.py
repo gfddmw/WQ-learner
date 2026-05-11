@@ -9,7 +9,7 @@ def test_sqlite_store_persists_users_tokens_and_questions(tmp_path):
     first_token = first_store.login("persist@example.com", "secret123")
     assert first_token is not None
 
-    draft = first_store.create_upload_draft(user.id, "question.png")
+    draft = first_store.create_upload_draft(user.id, "/uploads/users/user/question.png")
     confirmed = first_store.confirm_question(
         question_id=draft.id,
         user_id=user.id,

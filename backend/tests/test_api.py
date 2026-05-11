@@ -1,5 +1,8 @@
 from fastapi.testclient import TestClient
 
+import os
+from pathlib import Path
+
 from app.main import app
 
 
@@ -32,6 +35,9 @@ def test_upload_confirm_list_and_draw_original_question():
     draft = upload.json()
     assert draft["content_md_latex"]
     assert draft["status"] == "draft"
+    assert draft["image_url"].startswith("/uploads/users/")
+    uploaded_file = Path(os.environ["WQ_LEARNER_UPLOAD_DIR"]) / draft["image_url"].removeprefix("/uploads/")
+    assert uploaded_file.read_bytes() == b"fake-image"
 
     confirm = client.post(
         f"/questions/{draft['id']}/confirm",

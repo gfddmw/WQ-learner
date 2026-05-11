@@ -1,3 +1,6 @@
+from email.parser import BytesParser
+from email.policy import default
+
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 
 from .models import (
@@ -11,6 +14,7 @@ from .models import (
     UserProfile,
     VariantPracticeRequest,
 )
+from .image_storage import image_storage
 from .store import QuestionRecord, UserRecord, store
 
 app = FastAPI(title="WQ Learner API")
@@ -75,14 +79,36 @@ async def upload_question(
 ) -> QuestionResponse:
     content_type = request.headers.get("content-type", "")
     body = await request.body()
+    image_content, image_content_type = extract_image_upload(content_type, body)
     accepts_image = (
-        content_type.startswith("multipart/form-data")
-        or content_type in {"image/png", "image/jpeg", "image/jpg"}
+        image_content_type in {"image/png", "image/jpeg", "image/jpg"}
     )
-    if not accepts_image or not body:
+    if not accepts_image or not image_content:
         raise HTTPException(status_code=400, detail="Only PNG and JPEG uploads are supported")
-    record = store.create_upload_draft(user.id, "question.png")
+    stored_image = image_storage.save_upload(
+        user_id=user.id,
+        content=image_content,
+        content_type=image_content_type,
+    )
+    record = store.create_upload_draft(user.id, stored_image.image_url)
     return to_question_response(record)
+
+
+def extract_image_upload(content_type: str, body: bytes) -> tuple[bytes, str]:
+    normalized = content_type.split(";")[0].strip().lower()
+    if normalized in {"image/png", "image/jpeg", "image/jpg"}:
+        return body, normalized
+    if normalized != "multipart/form-data":
+        return b"", normalized
+
+    message = BytesParser(policy=default).parsebytes(
+        b"Content-Type: " + content_type.encode("utf-8") + b"\r\n\r\n" + body
+    )
+    for part in message.iter_parts():
+        part_type = part.get_content_type()
+        if part_type in {"image/png", "image/jpeg", "image/jpg"}:
+            return part.get_payload(decode=True) or b"", part_type
+    return b"", normalized
 
 
 @app.post("/questions/{question_id}/confirm", response_model=QuestionResponse)

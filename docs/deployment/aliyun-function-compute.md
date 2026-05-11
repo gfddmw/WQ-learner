@@ -84,13 +84,14 @@ pip install -r requirements.txt -t .
 | `PORT` | 本地或函数环境启动端口，默认 `9000` | `9000` |
 | `WQ_LEARNER_DB` | 本地 SQLite 数据库路径，仅用于开发和临时验证 | `/tmp/wq_learner.db` |
 | `WQ_LEARNER_DATABASE_URL` | 云端数据库连接地址，当前为适配入口占位 | `postgresql://...` |
+| `WQ_LEARNER_UPLOAD_DIR` | 本地图片上传目录，仅用于开发和测试 | `/tmp/wq-learner-uploads` |
+| `WQ_LEARNER_OSS_BUCKET` | OSS bucket 名称，当前为适配入口占位 | `wq-learner-questions` |
+| `WQ_LEARNER_OSS_ENDPOINT` | OSS endpoint，当前为适配入口占位 | `oss-cn-hangzhou.aliyuncs.com` |
 
 后续功能会新增：
 
 | 名称 | 用途 |
 | --- | --- |
-| `WQ_LEARNER_OSS_BUCKET` | OSS bucket 名称 |
-| `WQ_LEARNER_OSS_ENDPOINT` | OSS endpoint |
 | `WQ_LEARNER_MODEL_API_KEY` | OCR/大模型服务密钥 |
 
 ## Android 接入方式

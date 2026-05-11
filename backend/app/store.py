@@ -49,7 +49,7 @@ class Store(Protocol):
     def user_for_token(self, token: str) -> UserRecord | None:
         ...
 
-    def create_upload_draft(self, user_id: str, filename: str) -> QuestionRecord:
+    def create_upload_draft(self, user_id: str, image_url: str) -> QuestionRecord:
         ...
 
     def confirm_question(
@@ -186,7 +186,7 @@ class SQLiteStore:
             ).fetchone()
         return self._row_to_user(row)
 
-    def create_upload_draft(self, user_id: str, filename: str) -> QuestionRecord:
+    def create_upload_draft(self, user_id: str, image_url: str) -> QuestionRecord:
         recognized = (
             "二叉树遍历与哈希查找综合题。请分析遍历过程，"
             "并写出平均时间复杂度 $O(n)$。"
@@ -195,7 +195,7 @@ class SQLiteStore:
         question = QuestionRecord(
             id=str(uuid4()),
             user_id=user_id,
-            image_url=f"/uploads/{filename}",
+            image_url=image_url,
             content_md_latex=recognized,
             subject=classification.subject,
             chapter=classification.chapter,
@@ -425,7 +425,7 @@ class CloudDatabaseStore:
     def user_for_token(self, token: str) -> UserRecord | None:
         self._not_implemented()
 
-    def create_upload_draft(self, user_id: str, filename: str) -> QuestionRecord:
+    def create_upload_draft(self, user_id: str, image_url: str) -> QuestionRecord:
         self._not_implemented()
 
     def confirm_question(
