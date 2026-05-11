@@ -7,11 +7,12 @@ import java.net.URL
 import java.net.URLEncoder
 
 object ApiConfig {
+    const val FUNCTION_COMPUTE_BASE_URL = "https://backend-eyigeidcmc.cn-hangzhou.fcapp.run"
     const val LOCAL_DEVELOPMENT_BASE_URL = "http://10.0.2.2:8000"
-    const val DEFAULT_BASE_URL = LOCAL_DEVELOPMENT_BASE_URL
+    const val DEFAULT_BASE_URL = FUNCTION_COMPUTE_BASE_URL
 
     fun normalizeBaseUrl(input: String): String {
-        return input.trim().trimEnd('/').ifBlank { LOCAL_DEVELOPMENT_BASE_URL }
+        return input.trim().trimEnd('/').ifBlank { DEFAULT_BASE_URL }
     }
 
     fun isLocalDevelopmentBaseUrl(input: String): Boolean {
