@@ -35,12 +35,22 @@ class ApiEndpointStateTest {
     }
 
     @Test
-    fun localDevelopmentEndpointCanStillBeSelected() {
+    fun localDevelopmentEndpointFallsBackToCloudEndpoint() {
         val state = ApiEndpointState()
 
-        state.updateBaseUrl(ApiConfig.LOCAL_DEVELOPMENT_BASE_URL)
+        state.updateBaseUrl("http://10.0.2.2:8000")
 
-        assertEquals(ApiConfig.LOCAL_DEVELOPMENT_BASE_URL, state.baseUrl)
-        assertEquals("本地开发", state.environmentLabel)
+        assertEquals(ApiConfig.FUNCTION_COMPUTE_BASE_URL, state.baseUrl)
+        assertEquals("函数计算公网 API", state.environmentLabel)
+    }
+
+    @Test
+    fun nonHttpsEndpointFallsBackToCloudEndpoint() {
+        val state = ApiEndpointState()
+
+        state.updateBaseUrl("http://wq-learner.example.com")
+
+        assertEquals(ApiConfig.FUNCTION_COMPUTE_BASE_URL, state.baseUrl)
+        assertEquals("函数计算公网 API", state.environmentLabel)
     }
 }

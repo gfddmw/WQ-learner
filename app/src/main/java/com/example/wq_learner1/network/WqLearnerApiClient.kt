@@ -8,15 +8,14 @@ import java.net.URLEncoder
 
 object ApiConfig {
     const val FUNCTION_COMPUTE_BASE_URL = "https://backend-eyigeidcmc.cn-hangzhou.fcapp.run"
-    const val LOCAL_DEVELOPMENT_BASE_URL = "http://10.0.2.2:8000"
     const val DEFAULT_BASE_URL = FUNCTION_COMPUTE_BASE_URL
 
     fun normalizeBaseUrl(input: String): String {
-        return input.trim().trimEnd('/').ifBlank { DEFAULT_BASE_URL }
-    }
-
-    fun isLocalDevelopmentBaseUrl(input: String): Boolean {
-        return normalizeBaseUrl(input) == LOCAL_DEVELOPMENT_BASE_URL
+        val normalized = input.trim().trimEnd('/')
+        if (normalized.isBlank()) {
+            return DEFAULT_BASE_URL
+        }
+        return normalized.takeIf { it.startsWith("https://") } ?: DEFAULT_BASE_URL
     }
 }
 
@@ -27,11 +26,7 @@ class ApiEndpointState(
         private set
 
     val environmentLabel: String
-        get() = if (ApiConfig.isLocalDevelopmentBaseUrl(baseUrl)) {
-            "本地开发"
-        } else {
-            "函数计算公网 API"
-        }
+        get() = "函数计算公网 API"
 
     val statusText: String
         get() = "当前后端：$baseUrl（$environmentLabel）"

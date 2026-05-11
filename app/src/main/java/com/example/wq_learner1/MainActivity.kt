@@ -403,7 +403,7 @@ private fun QuestionBankScreen(
 ) {
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var selectedSubject by remember { mutableStateOf("全部") }
-    var status by remember { mutableStateOf("可查看本地样例，也可登录后从后端刷新。") }
+    var status by remember { mutableStateOf("登录后可从云端刷新错题。") }
     val subjects = listOf("全部", "数据结构", "计算机组成原理", "操作系统", "计算机网络")
     val visibleQuestions = if (selectedSubject == "全部") {
         questions
@@ -436,7 +436,7 @@ private fun QuestionBankScreen(
     ScreenColumn {
         ScreenTitle(
             title = "云端错题库",
-            subtitle = "登录后可按科目从后端 /questions 读取 SQLite 中的错题。",
+            subtitle = "登录后可按科目从云端 /questions 读取错题。",
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             subjects.forEach { subject ->
@@ -606,7 +606,7 @@ private fun MeScreen(
     ScreenColumn {
         ScreenTitle(
             title = "我的",
-            subtitle = "这里可以切换本地开发地址或函数计算公网 API 地址。",
+            subtitle = "当前仅连接函数计算公网 API。",
         )
         InfoCard(title = "后端环境") {
             OutlinedTextField(
@@ -621,20 +621,11 @@ private fun MeScreen(
                     onClick = {
                         onBaseUrlChange(endpointDraft)
                         tokenPreview = ""
-                        status = "已切换后端地址，请重新登录"
+                        endpointDraft = endpointState.withBaseUrl(endpointDraft).baseUrl
+                        status = "已应用云端 API 地址，请重新登录"
                     },
                 ) {
                     Text("应用地址")
-                }
-                OutlinedButton(
-                    onClick = {
-                        endpointDraft = ApiConfig.LOCAL_DEVELOPMENT_BASE_URL
-                        onBaseUrlChange(ApiConfig.LOCAL_DEVELOPMENT_BASE_URL)
-                        tokenPreview = ""
-                        status = "已切换为本地开发地址"
-                    },
-                ) {
-                    Text("本地开发")
                 }
             }
             Spacer(Modifier.height(6.dp))
@@ -679,9 +670,9 @@ private fun MeScreen(
             Text(endpointState.statusText)
         }
         InfoCard(title = "开发状态") {
-            Text("Android：HTTP 客户端和 token 状态已完成")
-            Text("后端：FastAPI + 函数计算启动基础")
-            Text("下一步：接入云端数据库和 OSS")
+            Text("Android：仅使用云端 API")
+            Text("后端：函数计算 + OSS + 表格存储")
+            Text("模型：通义千问 VL OCR 与变形题生成")
         }
     }
 }
