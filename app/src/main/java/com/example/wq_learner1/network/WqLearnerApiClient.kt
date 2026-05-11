@@ -324,7 +324,46 @@ private fun String.toPractice(): ApiPractice {
 }
 
 private fun String.jsonObjects(): List<String> {
-    return Regex("\\{[^{}]*}").findAll(this).map { it.value }.toList()
+    val objects = mutableListOf<String>()
+    var start = -1
+    var depth = 0
+    var inString = false
+    var escaped = false
+
+    forEachIndexed { index, char ->
+        if (escaped) {
+            escaped = false
+            return@forEachIndexed
+        }
+        if (char == '\\' && inString) {
+            escaped = true
+            return@forEachIndexed
+        }
+        if (char == '"') {
+            inString = !inString
+            return@forEachIndexed
+        }
+        if (inString) {
+            return@forEachIndexed
+        }
+
+        when (char) {
+            '{' -> {
+                if (depth == 0) {
+                    start = index
+                }
+                depth += 1
+            }
+            '}' -> {
+                depth -= 1
+                if (depth == 0 && start >= 0) {
+                    objects.add(substring(start, index + 1))
+                    start = -1
+                }
+            }
+        }
+    }
+    return objects
 }
 
 private fun String.jsonValue(key: String): String {

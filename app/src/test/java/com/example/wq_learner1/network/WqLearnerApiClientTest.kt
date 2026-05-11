@@ -57,6 +57,76 @@ class WqLearnerApiClientTest {
     }
 
     @Test
+    fun listQuestionsParsesMultipleObjectsWithoutRegexSyntaxError() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """
+                    [
+                      {
+                        "id":"Q-001",
+                        "user_id":"U-1",
+                        "image_url":"oss://wq-learner/q1.jpg",
+                        "content_md_latex":"第一题",
+                        "subject":"数据结构",
+                        "chapter":"树与二叉树",
+                        "status":"draft",
+                        "mastery":"unfamiliar"
+                      },
+                      {
+                        "id":"Q-002",
+                        "user_id":"U-1",
+                        "image_url":"oss://wq-learner/q2.jpg",
+                        "content_md_latex":"第二题",
+                        "subject":"计算机网络",
+                        "chapter":"传输层",
+                        "status":"draft",
+                        "mastery":"reviewing"
+                      }
+                    ]
+                """.trimIndent(),
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        val questions = client.listQuestions("abc123")
+
+        assertEquals(2, questions.size)
+        assertEquals("Q-001", questions[0].id)
+        assertEquals("Q-002", questions[1].id)
+    }
+
+    @Test
+    fun listQuestionsParsesLatexBracesInsideStringValues() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """
+                    [
+                      {
+                        "id":"Q-LATEX",
+                        "user_id":"U-1",
+                        "image_url":"oss://wq-learner/q.jpg",
+                        "content_md_latex":"证明 ${'$'}A^{2}=A${'$'} 且 ${'$'}x_{i}^{T}x_i=1${'$'}。",
+                        "subject":"数学",
+                        "chapter":"线性代数/矩阵论",
+                        "status":"draft",
+                        "mastery":"unfamiliar"
+                      }
+                    ]
+                """.trimIndent(),
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        val questions = client.listQuestions("abc123")
+
+        assertEquals(1, questions.size)
+        assertEquals("Q-LATEX", questions.first().id)
+        assertEquals("证明 ${'$'}A^{2}=A${'$'} 且 ${'$'}x_{i}^{T}x_i=1${'$'}。", questions.first().contentMdLatex)
+    }
+
+    @Test
     fun uploadQuestionSendsMultipartImageAndParsesDraft() {
         val transport = FakeTransport(
             HttpResponse(

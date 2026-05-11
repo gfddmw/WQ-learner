@@ -7,3 +7,11 @@ data class MistakeQuestion(
     val chapter: String,
     val mastery: String,
 )
+
+fun MutableList<MistakeQuestion>.upsertFirstById(question: MistakeQuestion) {
+    val existingIndex = indexOfFirst { it.id == question.id }
+    if (existingIndex >= 0) {
+        removeAt(existingIndex)
+    }
+    add(0, question)
+}

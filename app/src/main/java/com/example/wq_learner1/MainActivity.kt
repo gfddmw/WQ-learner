@@ -58,6 +58,7 @@ import com.example.wq_learner1.data.ImageSelectionState
 import com.example.wq_learner1.data.MistakeQuestion
 import com.example.wq_learner1.data.QuestionBankRepository
 import com.example.wq_learner1.data.QuestionBankResult
+import com.example.wq_learner1.data.upsertFirstById
 import com.example.wq_learner1.domain.SubjectClassifier
 import com.example.wq_learner1.network.ApiConfig
 import com.example.wq_learner1.network.ApiEndpointState
@@ -92,24 +93,7 @@ private fun WqLearnerApp() {
     var endpointState by remember { mutableStateOf(ApiEndpointState()) }
     val apiClient = remember(endpointState.baseUrl) { WqLearnerApiClient(endpointState.baseUrl) }
     val questionBankRepository = remember(apiClient) { QuestionBankRepository(apiClient) }
-    val questions = remember {
-        mutableStateListOf(
-            MistakeQuestion(
-                id = "Q-001",
-                content = "二叉树遍历的时间复杂度为 ${'$'}O(n)${'$'}，请说明先序遍历过程。",
-                subject = "数据结构",
-                chapter = "树与二叉树",
-                mastery = "reviewing",
-            ),
-            MistakeQuestion(
-                id = "Q-002",
-                content = "TCP 拥塞控制中慢开始阈值如何变化？",
-                subject = "计算机网络",
-                chapter = "传输层",
-                mastery = "unfamiliar",
-            ),
-        )
-    }
+    val questions = remember { mutableStateListOf<MistakeQuestion>() }
 
     Scaffold(
         bottomBar = {
@@ -136,10 +120,7 @@ private fun WqLearnerApp() {
                     sessionState = sessionState,
                     apiClient = apiClient,
                     onSave = { question ->
-                        questions.add(
-                            0,
-                            question,
-                        )
+                        questions.upsertFirstById(question)
                     },
                 )
                 MainTab.Bank -> QuestionBankScreen(
@@ -176,6 +157,7 @@ private fun UploadScreen(
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var imageState by remember { mutableStateOf(ImageSelectionState()) }
     var cameraState by remember { mutableStateOf(CameraCaptureState()) }
+    var isUploading by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("已生成识别草稿，等待校正") }
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
@@ -219,6 +201,10 @@ private fun UploadScreen(
             status = "请先在“我的”页面登录后再上传错题。"
             return
         }
+        if (isUploading) {
+            status = "正在上传，请稍等。"
+            return
+        }
         val selectedImageUri = imageState.selectedImageUri
         if (selectedImageUri.isNullOrBlank()) {
             status = "请先选择一张错题图片。"
@@ -226,6 +212,7 @@ private fun UploadScreen(
         }
 
         val imageUri = Uri.parse(selectedImageUri)
+        isUploading = true
         status = "正在上传图片并生成错题草稿..."
         Thread {
             try {
@@ -258,10 +245,12 @@ private fun UploadScreen(
                         ),
                     )
                     status = "已上传到云端并生成错题草稿：${draft.id}"
+                    isUploading = false
                 }
             } catch (error: Exception) {
                 mainHandler.post {
                     status = "图片上传失败：${error.message}"
+                    isUploading = false
                 }
             }
         }.start()
@@ -363,9 +352,10 @@ private fun UploadScreen(
             Spacer(Modifier.height(12.dp))
             Button(
                 onClick = { uploadSelectedImage() },
+                enabled = !isUploading,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("上传并入库")
+                Text(if (isUploading) "上传中..." else "上传并入库")
             }
         }
 
