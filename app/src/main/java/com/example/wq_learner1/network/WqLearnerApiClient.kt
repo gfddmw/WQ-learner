@@ -104,9 +104,13 @@ class SessionState {
 
 class ApiException(message: String) : RuntimeException(message)
 
+interface QuestionApi {
+    fun listQuestions(token: String, subject: String? = null, chapter: String? = null): List<ApiQuestion>
+}
+
 class WqLearnerApiClient(
     private val transport: HttpTransport = UrlConnectionTransport(),
-) {
+) : QuestionApi {
     fun register(email: String, password: String) {
         val response = transport.send(
             HttpRequest(
@@ -133,7 +137,7 @@ class WqLearnerApiClient(
         )
     }
 
-    fun listQuestions(token: String, subject: String? = null, chapter: String? = null): List<ApiQuestion> {
+    override fun listQuestions(token: String, subject: String?, chapter: String?): List<ApiQuestion> {
         val query = buildList {
             if (!subject.isNullOrBlank()) add("subject=${subject.urlEncode()}")
             if (!chapter.isNullOrBlank()) add("chapter=${chapter.urlEncode()}")

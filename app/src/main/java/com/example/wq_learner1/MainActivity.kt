@@ -1,6 +1,8 @@
 package com.example.wq_learner1
 
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -41,6 +43,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.wq_learner1.data.MistakeQuestion
+import com.example.wq_learner1.data.QuestionBankRepository
+import com.example.wq_learner1.data.QuestionBankResult
 import com.example.wq_learner1.domain.SubjectClassifier
 import com.example.wq_learner1.network.ApiConfig
 import com.example.wq_learner1.network.SessionState
@@ -53,14 +58,6 @@ private enum class MainTab(val label: String) {
     Practice("练习"),
     Me("我的"),
 }
-
-private data class MistakeQuestion(
-    val id: String,
-    val content: String,
-    val subject: String,
-    val chapter: String,
-    val mastery: String,
-)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,6 +76,7 @@ private fun WqLearnerApp() {
     var selectedTab by remember { mutableStateOf(MainTab.Upload) }
     val sessionState = remember { SessionState() }
     val apiClient = remember { WqLearnerApiClient() }
+    val questionBankRepository = remember { QuestionBankRepository(apiClient) }
     val questions = remember {
         mutableStateListOf(
             MistakeQuestion(
@@ -133,7 +131,11 @@ private fun WqLearnerApp() {
                         )
                     },
                 )
-                MainTab.Bank -> QuestionBankScreen(questions = questions)
+                MainTab.Bank -> QuestionBankScreen(
+                    questions = questions,
+                    sessionState = sessionState,
+                    repository = questionBankRepository,
+                )
                 MainTab.Practice -> PracticeScreen(questions = questions)
                 MainTab.Me -> MeScreen(sessionState = sessionState, apiClient = apiClient)
             }
@@ -232,8 +234,14 @@ private fun UploadScreen(
 }
 
 @Composable
-private fun QuestionBankScreen(questions: List<MistakeQuestion>) {
+private fun QuestionBankScreen(
+    questions: MutableList<MistakeQuestion>,
+    sessionState: SessionState,
+    repository: QuestionBankRepository,
+) {
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var selectedSubject by remember { mutableStateOf("全部") }
+    var status by remember { mutableStateOf("可查看本地样例，也可登录后从后端刷新。") }
     val subjects = listOf("全部", "数据结构", "计算机组成原理", "操作系统", "计算机网络")
     val visibleQuestions = if (selectedSubject == "全部") {
         questions
@@ -241,10 +249,32 @@ private fun QuestionBankScreen(questions: List<MistakeQuestion>) {
         questions.filter { it.subject == selectedSubject }
     }
 
+    fun refreshFromBackend() {
+        status = "正在从后端加载题库..."
+        Thread {
+            val result = repository.loadQuestions(sessionState, subject = selectedSubject)
+            mainHandler.post {
+                when (result) {
+                    QuestionBankResult.LoginRequired -> {
+                        status = "请先在“我的”页面登录后再刷新题库。"
+                    }
+                    is QuestionBankResult.Loaded -> {
+                        questions.clear()
+                        questions.addAll(result.questions)
+                        status = "已从后端加载 ${result.questions.size} 道错题。"
+                    }
+                    is QuestionBankResult.Failed -> {
+                        status = "题库加载失败：${result.message}"
+                    }
+                }
+            }
+        }.start()
+    }
+
     ScreenColumn {
         ScreenTitle(
             title = "云端错题库",
-            subtitle = "当前展示本地样例数据；网络客户端已准备好读取后端 /questions。",
+            subtitle = "登录后可按科目从后端 /questions 读取 SQLite 中的错题。",
         )
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             subjects.forEach { subject ->
@@ -256,6 +286,14 @@ private fun QuestionBankScreen(questions: List<MistakeQuestion>) {
                 }
             }
         }
+        Button(onClick = { refreshFromBackend() }, modifier = Modifier.fillMaxWidth()) {
+            Text("从后端刷新题库")
+        }
+        Text(
+            text = status,
+            color = MaterialTheme.colorScheme.primary,
+            style = MaterialTheme.typography.bodyMedium,
+        )
         visibleQuestions.forEach { question ->
             QuestionCard(question)
         }
@@ -387,7 +425,7 @@ private fun MeScreen(
         InfoCard(title = "开发状态") {
             Text("Android：HTTP 客户端和 token 状态已完成")
             Text("后端：FastAPI + SQLite API")
-            Text("下一步：题库页接入真实 /questions 数据")
+            Text("下一步：上传页接入真实图片选择")
         }
     }
 }
