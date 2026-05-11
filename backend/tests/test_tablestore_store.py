@@ -54,7 +54,13 @@ class FakeTableStoreAdapter:
         self.rows = {}
 
     def put_row(self, table_name, primary_key, attributes):
-        self.rows[(table_name, tuple(primary_key))] = dict(attributes)
+        duplicated_columns = {name for name, _ in primary_key}.intersection(attributes.keys())
+        if duplicated_columns:
+            raise ValueError(f"duplicated primary key attributes: {duplicated_columns}")
+
+        row = dict(attributes)
+        row.update(dict(primary_key))
+        self.rows[(table_name, tuple(primary_key))] = row
 
     def get_row(self, table_name, primary_key):
         attributes = self.rows.get((table_name, tuple(primary_key)))

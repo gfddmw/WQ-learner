@@ -494,7 +494,7 @@ class TableStoreStore:
         self.adapter.put_row(
             TABLE_USERS,
             self._user_pk(email),
-            {"id": user.id, "email": user.email, "password": user.password},
+            {"id": user.id, "password": user.password},
         )
         return user
 
@@ -507,7 +507,7 @@ class TableStoreStore:
         self.adapter.put_row(
             TABLE_TOKENS,
             self._token_pk(token),
-            {"token": token, "user_id": user.id, "email": user.email},
+            {"user_id": user.id, "email": user.email},
         )
         return token
 
@@ -644,8 +644,6 @@ class TableStoreStore:
             TABLE_QUESTIONS,
             self._question_pk(question.user_id, question.id),
             {
-                "id": question.id,
-                "user_id": question.user_id,
                 "image_url": question.image_url,
                 "content_md_latex": question.content_md_latex,
                 "subject": question.subject,
@@ -660,8 +658,6 @@ class TableStoreStore:
             TABLE_PRACTICES,
             self._practice_pk(practice.user_id, practice.id),
             {
-                "id": practice.id,
-                "user_id": practice.user_id,
                 "mode": practice.mode,
                 "question_ids_json": json.dumps(practice.question_ids, ensure_ascii=False),
                 "variant_json": json.dumps(practice.variant, ensure_ascii=False) if practice.variant is not None else "",
