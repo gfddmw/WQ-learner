@@ -55,7 +55,14 @@ class Store(Protocol):
     def user_for_token(self, token: str) -> UserRecord | None:
         ...
 
-    def create_upload_draft(self, user_id: str, image_url: str) -> QuestionRecord:
+    def create_upload_draft(
+        self,
+        user_id: str,
+        image_url: str,
+        content_md_latex: str | None = None,
+        subject: str | None = None,
+        chapter: str | None = None,
+    ) -> QuestionRecord:
         ...
 
     def confirm_question(
@@ -192,19 +199,26 @@ class SQLiteStore:
             ).fetchone()
         return self._row_to_user(row)
 
-    def create_upload_draft(self, user_id: str, image_url: str) -> QuestionRecord:
-        recognized = (
-            "二叉树遍历与哈希查找综合题。请分析遍历过程，"
-            "并写出平均时间复杂度 $O(n)$。"
+    def create_upload_draft(
+        self,
+        user_id: str,
+        image_url: str,
+        content_md_latex: str | None = None,
+        subject: str | None = None,
+        chapter: str | None = None,
+    ) -> QuestionRecord:
+        content_md_latex, subject, chapter = draft_fields_or_default(
+            content_md_latex,
+            subject,
+            chapter,
         )
-        classification = classify_question(recognized)
         question = QuestionRecord(
             id=str(uuid4()),
             user_id=user_id,
             image_url=image_url,
-            content_md_latex=recognized,
-            subject=classification.subject,
-            chapter=classification.chapter,
+            content_md_latex=content_md_latex,
+            subject=subject,
+            chapter=chapter,
         )
         self._save_question(question)
         return question
@@ -520,19 +534,26 @@ class TableStoreStore:
             return None
         return self._user_by_email(email)
 
-    def create_upload_draft(self, user_id: str, image_url: str) -> QuestionRecord:
-        recognized = (
-            "二叉树遍历与哈希查找综合题。请分析遍历过程，"
-            "并写出平均时间复杂度 $O(n)$。"
+    def create_upload_draft(
+        self,
+        user_id: str,
+        image_url: str,
+        content_md_latex: str | None = None,
+        subject: str | None = None,
+        chapter: str | None = None,
+    ) -> QuestionRecord:
+        content_md_latex, subject, chapter = draft_fields_or_default(
+            content_md_latex,
+            subject,
+            chapter,
         )
-        classification = classify_question(recognized)
         question = QuestionRecord(
             id=str(uuid4()),
             user_id=user_id,
             image_url=image_url,
-            content_md_latex=recognized,
-            subject=classification.subject,
-            chapter=classification.chapter,
+            content_md_latex=content_md_latex,
+            subject=subject,
+            chapter=chapter,
         )
         self._save_question(question)
         return question
@@ -727,7 +748,14 @@ class CloudDatabaseStore:
     def user_for_token(self, token: str) -> UserRecord | None:
         self._not_implemented()
 
-    def create_upload_draft(self, user_id: str, image_url: str) -> QuestionRecord:
+    def create_upload_draft(
+        self,
+        user_id: str,
+        image_url: str,
+        content_md_latex: str | None = None,
+        subject: str | None = None,
+        chapter: str | None = None,
+    ) -> QuestionRecord:
         self._not_implemented()
 
     def confirm_question(
@@ -774,6 +802,22 @@ class CloudDatabaseStore:
 
     def questions_by_ids(self, user_id: str, question_ids: list[str]) -> list[QuestionRecord]:
         self._not_implemented()
+
+
+def draft_fields_or_default(
+    content_md_latex: str | None,
+    subject: str | None,
+    chapter: str | None,
+) -> tuple[str, str, str]:
+    if content_md_latex and subject and chapter:
+        return content_md_latex, subject, chapter
+
+    recognized = (
+        "二叉树遍历与哈希查找综合题。请分析遍历过程，"
+        "并写出平均时间复杂度 $O(n)$。"
+    )
+    classification = classify_question(recognized)
+    return recognized, classification.subject, classification.chapter
 
 
 def _tablestore_response_row(response: Any) -> Any:

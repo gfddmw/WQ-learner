@@ -135,6 +135,34 @@ wq_practices
 
 表格存储没有配置时，后端仍会回退到 SQLite，方便本地测试。
 
+## OCR/公式识别
+
+`POST /questions/upload` 的处理流程是：
+
+1. Android 上传 PNG/JPEG 图片。
+2. 后端保存图片到本地文件或 OSS。
+3. 后端调用 OCR 服务得到 Markdown + LaTeX 题干、科目和章节。
+4. 后端把 OCR 草稿写入 SQLite 或表格存储。
+
+当前默认使用 `SimulatedOcrService`，会返回一段稳定的模拟 Markdown + LaTeX 文本，并复用关键词分类器归类到 11408 科目和章节。这样上传、存储、题库刷新链路可以先完整跑通。
+
+后续接入真实 OCR/视觉模型时，只需要实现同样的接口：
+
+```text
+recognize(image_content, content_type, image_url) -> OcrResult
+```
+
+`OcrResult` 字段：
+
+```text
+content_md_latex
+subject
+chapter
+confidence
+```
+
+真实服务的密钥、endpoint 和模型名称应通过函数计算环境变量配置，不写入代码。
+
 ## 主要接口
 
 认证：

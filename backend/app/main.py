@@ -15,6 +15,7 @@ from .models import (
     VariantPracticeRequest,
 )
 from .image_storage import image_storage
+from .ocr import ocr_service
 from .store import QuestionRecord, UserRecord, store
 
 app = FastAPI(title="WQ Learner API")
@@ -90,7 +91,18 @@ async def upload_question(
         content=image_content,
         content_type=image_content_type,
     )
-    record = store.create_upload_draft(user.id, stored_image.image_url)
+    ocr_result = ocr_service.recognize(
+        image_content=image_content,
+        content_type=image_content_type,
+        image_url=stored_image.image_url,
+    )
+    record = store.create_upload_draft(
+        user_id=user.id,
+        image_url=stored_image.image_url,
+        content_md_latex=ocr_result.content_md_latex,
+        subject=ocr_result.subject,
+        chapter=ocr_result.chapter,
+    )
     return to_question_response(record)
 
 
