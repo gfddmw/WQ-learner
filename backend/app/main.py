@@ -16,6 +16,15 @@ from .store import QuestionRecord, UserRecord, store
 app = FastAPI(title="WQ Learner API")
 
 
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "service": "wq-learner-api",
+        "runtime": "fastapi",
+    }
+
+
 def to_question_response(record: QuestionRecord) -> QuestionResponse:
     return QuestionResponse(
         id=record.id,
