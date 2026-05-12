@@ -12,32 +12,35 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = NightBlue,
+    secondary = WorkbenchGreen,
+    tertiary = WorkbenchAmber,
+    background = NightBackground,
+    surface = NightSurface,
+    surfaceVariant = WorkbenchInk,
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = WorkbenchBlue,
+    secondary = WorkbenchGreen,
+    tertiary = WorkbenchAmber,
+    error = WorkbenchRed,
+    background = WorkbenchPaper,
+    surface = WorkbenchSurface,
+    surfaceVariant = WorkbenchSurfaceWarm,
+    outline = WorkbenchLine,
+    onPrimary = WorkbenchSurface,
+    onSecondary = WorkbenchSurface,
+    onBackground = WorkbenchInk,
+    onSurface = WorkbenchInk,
+    onSurfaceVariant = WorkbenchMuted,
 )
 
 @Composable
 fun WQlearner1Theme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
