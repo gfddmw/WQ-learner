@@ -168,13 +168,15 @@ private fun UploadScreen(
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var imageState by remember { mutableStateOf(ImageSelectionState()) }
     var cameraState by remember { mutableStateOf(CameraCaptureState()) }
+    var draftQuestionId by remember { mutableStateOf<String?>(null) }
     var isUploading by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf("已生成识别草稿，等待校正") }
+    var isConfirming by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf("选择图片后会自动上传云端识别") }
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri != null) {
-            imageState = imageState.select(uri.toString())
+            recognizeSelectedImage(uri.toString())
         }
     }
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -182,19 +184,18 @@ private fun UploadScreen(
     ) { success ->
         val result = cameraState.complete(success)
         cameraState = result.cameraState
-        if (result.imageState != null) {
-            imageState = result.imageState
-            status = "已拍照并生成图片预览"
+        val selectedImageUri = result.imageState?.selectedImageUri
+        if (!selectedImageUri.isNullOrBlank()) {
+            recognizeSelectedImage(selectedImageUri)
         } else {
             status = "已取消拍照"
         }
     }
-    var draftContent by remember {
-        mutableStateOf("二叉树遍历与哈希查找综合题。请分析遍历过程，并写出平均时间复杂度 ${'$'}O(n)${'$'}。")
-    }
+    var draftContent by remember { mutableStateOf("") }
     val classification = SubjectClassifier.classify(draftContent)
-    var subject by remember { mutableStateOf(classification.subject) }
-    var chapter by remember { mutableStateOf(classification.chapter) }
+    var subject by remember { mutableStateOf(classification.subject.ifBlank { "数据结构" }) }
+    var chapter by remember { mutableStateOf(classification.chapter.ifBlank { "待分类" }) }
+    var mastery by remember { mutableStateOf("unfamiliar") }
 
     fun createCameraImageUri(): Uri {
         val imageDir = File(context.cacheDir, "camera-images").apply { mkdirs() }
@@ -206,25 +207,21 @@ private fun UploadScreen(
         )
     }
 
-    fun uploadSelectedImage() {
+    fun recognizeSelectedImage(selectedImageUri: String) {
         val token = sessionState.accessToken
         if (token.isNullOrBlank()) {
             status = "请先在“我的”页面登录后再上传错题。"
             return
         }
         if (isUploading) {
-            status = "正在上传，请稍等。"
-            return
-        }
-        val selectedImageUri = imageState.selectedImageUri
-        if (selectedImageUri.isNullOrBlank()) {
-            status = "请先选择一张错题图片。"
+            status = "正在识别，请稍等。"
             return
         }
 
         val imageUri = Uri.parse(selectedImageUri)
+        imageState = imageState.select(selectedImageUri)
         isUploading = true
-        status = "正在上传图片并生成错题草稿..."
+        status = "正在上传图片并识别题干..."
         Thread {
             try {
                 val imageBytes = context.contentResolver.openInputStream(imageUri)?.use { input ->
@@ -243,9 +240,11 @@ private fun UploadScreen(
                 )
 
                 mainHandler.post {
+                    draftQuestionId = draft.id
                     draftContent = draft.contentMdLatex
                     subject = draft.subject
                     chapter = draft.chapter
+                    mastery = draft.mastery
                     onSave(
                         MistakeQuestion(
                             id = draft.id,
@@ -255,13 +254,58 @@ private fun UploadScreen(
                             mastery = draft.mastery,
                         ),
                     )
-                    status = "已上传到云端并生成错题草稿：${draft.id}"
+                    status = "识别完成，请校正后确认入库。"
                     isUploading = false
                 }
             } catch (error: Exception) {
                 mainHandler.post {
-                    status = "图片上传失败：${error.message}"
+                    status = "识别失败：${error.message}"
                     isUploading = false
+                }
+            }
+        }.start()
+    }
+
+    fun confirmDraft() {
+        val token = sessionState.accessToken
+        val questionId = draftQuestionId
+        if (token.isNullOrBlank()) {
+            status = "请先登录后再确认入库。"
+            return
+        }
+        if (questionId.isNullOrBlank()) {
+            status = "请先拍照或选图识别题干。"
+            return
+        }
+        isConfirming = true
+        status = "正在确认入库..."
+        Thread {
+            try {
+                val updated = apiClient.updateQuestion(
+                    token = token,
+                    questionId = questionId,
+                    contentMdLatex = draftContent,
+                    subject = subject,
+                    chapter = chapter,
+                    mastery = mastery,
+                )
+                mainHandler.post {
+                    onSave(
+                        MistakeQuestion(
+                            id = updated.id,
+                            content = updated.contentMdLatex,
+                            subject = updated.subject,
+                            chapter = updated.chapter,
+                            mastery = updated.mastery,
+                        ),
+                    )
+                    status = "已确认入库：${updated.id}"
+                    isConfirming = false
+                }
+            } catch (error: Exception) {
+                mainHandler.post {
+                    status = "确认入库失败：${error.message}"
+                    isConfirming = false
                 }
             }
         }.start()
@@ -317,7 +361,12 @@ private fun UploadScreen(
                     OutlinedButton(
                         onClick = {
                             imageState = imageState.clear()
-                            status = "已清除所选图片"
+                            draftQuestionId = null
+                            draftContent = ""
+                            subject = "数据结构"
+                            chapter = "待分类"
+                            mastery = "unfamiliar"
+                            status = "已清除图片和识别草稿"
                         },
                     ) {
                         Text("清除")
@@ -362,11 +411,17 @@ private fun UploadScreen(
             }
             Spacer(Modifier.height(12.dp))
             Button(
-                onClick = { uploadSelectedImage() },
-                enabled = !isUploading,
+                onClick = { confirmDraft() },
+                enabled = !isUploading && !isConfirming,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text(if (isUploading) "上传中..." else "上传并入库")
+                Text(
+                    when {
+                        isUploading -> "识别中..."
+                        isConfirming -> "确认中..."
+                        else -> "确认入库"
+                    },
+                )
             }
         }
 
