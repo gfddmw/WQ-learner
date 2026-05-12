@@ -51,8 +51,10 @@ import com.example.wq_learner1.data.MistakeQuestion
 import com.example.wq_learner1.data.QuestionFilters
 import com.example.wq_learner1.data.QuestionBankRepository
 import com.example.wq_learner1.data.QuestionBankResult
+import com.example.wq_learner1.data.drawPracticeQuestion
 import com.example.wq_learner1.data.filterQuestions
 import com.example.wq_learner1.data.masteryLabel
+import com.example.wq_learner1.data.updateMastery
 import com.example.wq_learner1.data.upsertFirstById
 import com.example.wq_learner1.domain.SubjectClassifier
 import com.example.wq_learner1.network.ApiConfig
@@ -549,15 +551,29 @@ private fun QuestionBankScreen(
 
 @Composable
 private fun PracticeScreen(
-    questions: List<MistakeQuestion>,
+    questions: MutableList<MistakeQuestion>,
     sessionState: SessionState,
     apiClient: WqLearnerApiClient,
 ) {
     var mode by remember { mutableStateOf("original") }
-    val current = questions.firstOrNull()
+    var currentQuestionId by remember { mutableStateOf<String?>(null) }
+    val current = questions.firstOrNull { it.id == currentQuestionId } ?: questions.drawPracticeQuestion(null)
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var status by remember { mutableStateOf("选择一种练习方式。") }
     var variant by remember { mutableStateOf<ApiVariantQuestion?>(null) }
+
+    fun drawOriginalQuestion() {
+        val next = questions.drawPracticeQuestion(previousQuestionId = currentQuestionId)
+        if (next == null) {
+            status = "题库为空，请先上传或刷新错题。"
+            mode = "original"
+            return
+        }
+        currentQuestionId = next.id
+        variant = null
+        mode = "original"
+        status = "已抽取：${next.subject} / ${next.chapter}"
+    }
 
     fun generateVariant() {
         val token = sessionState.accessToken
@@ -566,12 +582,13 @@ private fun PracticeScreen(
             mode = "variant"
             return
         }
-        val source = current
+        val source = current ?: questions.drawPracticeQuestion(previousQuestionId = null)
         if (source == null) {
             status = "题库为空，请先上传或刷新错题。"
             mode = "variant"
             return
         }
+        currentQuestionId = source.id
         mode = "variant"
         status = "正在生成变形题..."
         Thread {
@@ -593,13 +610,47 @@ private fun PracticeScreen(
         }.start()
     }
 
+    fun updateCurrentMastery(nextMastery: String) {
+        val source = current
+        if (source == null) {
+            status = "请先抽取一道题。"
+            return
+        }
+        val localUpdated = questions.updateMastery(source.id, nextMastery)
+        questions.clear()
+        questions.addAll(localUpdated)
+        status = "已标记为：${masteryLabel(nextMastery)}"
+
+        val token = sessionState.accessToken
+        if (token.isNullOrBlank()) {
+            status = "已在本地标记为：${masteryLabel(nextMastery)}；登录后可同步云端。"
+            return
+        }
+        Thread {
+            try {
+                apiClient.updateQuestion(
+                    token = token,
+                    questionId = source.id,
+                    contentMdLatex = source.content,
+                    subject = source.subject,
+                    chapter = source.chapter,
+                    mastery = nextMastery,
+                )
+            } catch (error: Exception) {
+                mainHandler.post {
+                    status = "本地已更新，云端同步失败：${error.message}"
+                }
+            }
+        }.start()
+    }
+
     WqScreen {
         WqPageHeader(
             title = "练习复盘",
             subtitle = "支持抽现有错题，也支持由云端大模型生成变形题。",
         )
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Button(onClick = { mode = "original" }) {
+            Button(onClick = { drawOriginalQuestion() }) {
                 Text("抽现有错题")
             }
             OutlinedButton(onClick = { generateVariant() }) {
@@ -619,7 +670,7 @@ private fun PracticeScreen(
             WqTaskCard(title = "原题练习") {
                 QuestionSummary(current)
                 Spacer(Modifier.height(12.dp))
-                ReviewButtons()
+                ReviewButtons(onReview = ::updateCurrentMastery)
             }
         } else {
             WqTaskCard(title = variant?.title ?: "大模型变形题") {
@@ -645,7 +696,7 @@ private fun PracticeScreen(
                     )
                 }
                 Spacer(Modifier.height(12.dp))
-                ReviewButtons()
+                ReviewButtons(onReview = ::updateCurrentMastery)
             }
         }
     }
@@ -789,15 +840,15 @@ private fun QuestionSummary(question: MistakeQuestion) {
 }
 
 @Composable
-private fun ReviewButtons() {
+private fun ReviewButtons(onReview: (String) -> Unit) {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        OutlinedButton(onClick = {}) {
+        OutlinedButton(onClick = { onReview("unfamiliar") }) {
             Text("仍不熟")
         }
-        OutlinedButton(onClick = {}) {
+        OutlinedButton(onClick = { onReview("reviewing") }) {
             Text("复习中")
         }
-        Button(onClick = {}) {
+        Button(onClick = { onReview("mastered") }) {
             Text("已掌握")
         }
     }
