@@ -44,7 +44,6 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.wq_learner1.data.CameraCaptureState
 import com.example.wq_learner1.data.ImageSelectionState
@@ -52,13 +51,14 @@ import com.example.wq_learner1.data.MistakeQuestion
 import com.example.wq_learner1.data.QuestionFilters
 import com.example.wq_learner1.data.QuestionBankRepository
 import com.example.wq_learner1.data.QuestionBankResult
+import com.example.wq_learner1.data.compactSubjectLabel
 import com.example.wq_learner1.data.drawPracticeQuestion
 import com.example.wq_learner1.data.filterQuestions
 import com.example.wq_learner1.data.masteryLabel
+import com.example.wq_learner1.data.renderQuestionContent
 import com.example.wq_learner1.data.updateMastery
 import com.example.wq_learner1.data.upsertFirstById
 import com.example.wq_learner1.domain.SubjectClassifier
-import com.example.wq_learner1.network.ApiConfig
 import com.example.wq_learner1.network.ApiEndpointState
 import com.example.wq_learner1.network.ApiVariantQuestion
 import com.example.wq_learner1.network.SessionState
@@ -67,6 +67,7 @@ import com.example.wq_learner1.network.WqLearnerApiClient
 import com.example.wq_learner1.ui.components.WqActionRow
 import com.example.wq_learner1.ui.components.WqEmptyState
 import com.example.wq_learner1.ui.components.WqPageHeader
+import com.example.wq_learner1.ui.components.RichQuestionText
 import com.example.wq_learner1.ui.components.WqScreen
 import com.example.wq_learner1.ui.components.WqStatusPill
 import com.example.wq_learner1.ui.components.WqTaskCard
@@ -101,7 +102,7 @@ private fun WqLearnerApp() {
             restore(sessionStore.load())
         }
     }
-    var endpointState by remember { mutableStateOf(ApiEndpointState()) }
+    val endpointState = remember { ApiEndpointState() }
     val apiClient = remember(endpointState.baseUrl) { WqLearnerApiClient(endpointState.baseUrl) }
     val questionBankRepository = remember(apiClient) { QuestionBankRepository(apiClient) }
     val questions = remember { mutableStateListOf<MistakeQuestion>() }
@@ -147,12 +148,6 @@ private fun WqLearnerApp() {
                 MainTab.Me -> MeScreen(
                     sessionState = sessionState,
                     apiClient = apiClient,
-                    endpointState = endpointState,
-                    onBaseUrlChange = { nextBaseUrl ->
-                        endpointState = endpointState.withBaseUrl(nextBaseUrl)
-                        sessionStore.clear()
-                        sessionState.clear()
-                    },
                     onSessionSaved = {
                         sessionState.snapshot()?.let(sessionStore::save)
                     },
@@ -342,7 +337,7 @@ private fun UploadScreen(
                 )
             }
             Spacer(Modifier.height(12.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            WqActionRow {
                 Button(
                     onClick = {
                         runCatching {
@@ -398,10 +393,15 @@ private fun UploadScreen(
                     subject = next.subject
                     chapter = next.chapter
                 },
-                label = { Text("Markdown + LaTeX 题干") },
+                label = { Text("题干内容") },
                 minLines = 4,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (draftContent.isNotBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text("预览", fontWeight = FontWeight.Bold)
+                RichQuestionText(draftContent)
+            }
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -513,7 +513,7 @@ private fun QuestionBankScreen(
         WqActionRow {
             QuestionFilters.subjects.forEach { subject ->
                 WqStatusPill(
-                    text = subject,
+                    text = compactSubjectLabel(subject),
                     selected = selectedSubject == subject,
                     onClick = { selectedSubject = subject },
                 )
@@ -651,7 +651,7 @@ private fun PracticeScreen(
             title = "练习复盘",
             subtitle = "支持抽现有错题，也支持由云端大模型生成变形题。",
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        WqActionRow {
             Button(onClick = { drawOriginalQuestion() }) {
                 Text("抽现有错题")
             }
@@ -682,20 +682,13 @@ private fun PracticeScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    Text(
-                        text = variant?.contentMdLatex.orEmpty(),
-                        style = MaterialTheme.typography.bodyLarge,
-                    )
+                    RichQuestionText(variant?.contentMdLatex.orEmpty())
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "答案：${variant?.answerMdLatex.orEmpty()}",
-                        fontWeight = FontWeight.Bold,
-                    )
+                    Text("答案", fontWeight = FontWeight.Bold)
+                    RichQuestionText(variant?.answerMdLatex.orEmpty())
                     Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "解析：${variant?.explanationMdLatex.orEmpty()}",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Text("解析", fontWeight = FontWeight.Bold)
+                    RichQuestionText(variant?.explanationMdLatex.orEmpty())
                 }
                 Spacer(Modifier.height(12.dp))
                 ReviewButtons(onReview = ::updateCurrentMastery)
@@ -708,22 +701,15 @@ private fun PracticeScreen(
 private fun MeScreen(
     sessionState: SessionState,
     apiClient: WqLearnerApiClient,
-    endpointState: ApiEndpointState,
-    onBaseUrlChange: (String) -> Unit,
     onSessionSaved: () -> Unit,
     onSessionCleared: () -> Unit,
 ) {
-    var email by remember { mutableStateOf(sessionState.email ?: "demo@example.com") }
-    var password by remember { mutableStateOf("secret123") }
-    var endpointDraft by remember(endpointState.baseUrl) { mutableStateOf(endpointState.baseUrl) }
+    val mainHandler = remember { Handler(Looper.getMainLooper()) }
+    var email by remember { mutableStateOf(sessionState.email.orEmpty()) }
+    var password by remember { mutableStateOf("") }
     var status by remember {
         mutableStateOf(if (sessionState.isLoggedIn) "已登录" else "未登录")
     }
-    var tokenPreview by remember {
-        mutableStateOf(sessionState.accessToken?.take(8).orEmpty())
-    }
-    var cloudStatus by remember { mutableStateOf("未检查") }
-    var isCheckingCloud by remember { mutableStateOf(false) }
 
     fun loginAfterOptionalRegister(registerFirst: Boolean) {
         status = if (registerFirst) "正在注册并登录..." else "正在登录..."
@@ -735,26 +721,13 @@ private fun MeScreen(
                 val session = apiClient.login(email, password)
                 sessionState.setSession(session, email)
                 onSessionSaved()
-                tokenPreview = session.accessToken.take(8)
-                status = "已连接后端并保存 token"
+                mainHandler.post {
+                    status = "已登录"
+                }
             } catch (error: Exception) {
-                status = "后端连接失败：${error.message}"
-            }
-        }.start()
-    }
-
-    fun checkCloudStatus() {
-        if (isCheckingCloud) return
-        isCheckingCloud = true
-        cloudStatus = "正在检查云端服务..."
-        Thread {
-            try {
-                val health = apiClient.healthCheck()
-                cloudStatus = "FC 正常：${health.service} / ${health.runtime}"
-            } catch (error: Exception) {
-                cloudStatus = "云端检查失败：${error.message}"
-            } finally {
-                isCheckingCloud = false
+                mainHandler.post {
+                    status = "登录失败：${error.message}"
+                }
             }
         }.start()
     }
@@ -778,7 +751,7 @@ private fun MeScreen(
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            WqActionRow {
                 Button(onClick = { loginAfterOptionalRegister(registerFirst = false) }) {
                     Text("登录")
                 }
@@ -789,7 +762,6 @@ private fun MeScreen(
                     onClick = {
                         sessionState.clear()
                         onSessionCleared()
-                        tokenPreview = ""
                         status = "已退出登录"
                     },
                 ) {
@@ -797,42 +769,10 @@ private fun MeScreen(
                 }
             }
         }
-        WqTaskCard(title = "连接状态") {
+        WqTaskCard(title = "账号状态") {
             Text(status, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
-            Text("Token：${tokenPreview.ifBlank { "无" }}")
             Text("账号：${sessionState.email ?: "未登录"}")
-        }
-        WqTaskCard(title = "云端状态") {
-            Text(endpointState.statusText)
-            Text("连接：$cloudStatus", fontWeight = FontWeight.Bold)
-            Button(
-                onClick = { checkCloudStatus() },
-                enabled = !isCheckingCloud,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (isCheckingCloud) "检查中..." else "检查云端状态")
-            }
-        }
-        WqTaskCard(title = "云端 API") {
-            OutlinedTextField(
-                value = endpointDraft,
-                onValueChange = { endpointDraft = it },
-                label = { Text("API 地址") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = {
-                    onBaseUrlChange(endpointDraft)
-                    tokenPreview = ""
-                    endpointDraft = endpointState.withBaseUrl(endpointDraft).baseUrl
-                    status = "已应用云端 API 地址，请重新登录"
-                },
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text("应用地址")
-            }
         }
     }
 }
@@ -845,7 +785,7 @@ private fun QuestionCard(
 ) {
     WqTaskCard(title = "${question.subject} / ${question.chapter}") {
         Text(masteryLabel(question.mastery), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        Text(if (expanded) question.content else question.content.take(96))
+        RichQuestionText(if (expanded) question.content else renderQuestionContent(question.content).take(96))
         if (onToggleExpanded != null) {
             OutlinedButton(onClick = onToggleExpanded) {
                 Text(if (expanded) "收起详情" else "查看详情")
@@ -857,30 +797,22 @@ private fun QuestionCard(
 @Composable
 private fun QuestionSummary(question: MistakeQuestion) {
     Text(question.id, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-    Text(question.content)
+    RichQuestionText(question.content)
     Spacer(Modifier.height(6.dp))
-    Text("掌握状态：${question.mastery}", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text("掌握状态：${masteryLabel(question.mastery)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable
 private fun ReviewButtons(onReview: (String) -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    WqActionRow {
         OutlinedButton(onClick = { onReview("unfamiliar") }) {
-            Text("仍不熟")
+            Text("不熟")
         }
         OutlinedButton(onClick = { onReview("reviewing") }) {
-            Text("复习中")
+            Text("复习")
         }
         Button(onClick = { onReview("mastered") }) {
-            Text("已掌握")
+            Text("掌握")
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun WqLearnerAppPreview() {
-    WQlearner1Theme {
-        WqLearnerApp()
     }
 }

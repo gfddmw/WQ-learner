@@ -3,7 +3,8 @@ package com.example.wq_learner1.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,16 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.wq_learner1.data.renderQuestionContent
 
 @Composable
 fun WqScreen(content: @Composable ColumnScope.() -> Unit) {
@@ -71,20 +72,21 @@ fun WqTaskCard(
 
 @Composable
 fun WqStatusPill(text: String, selected: Boolean, onClick: () -> Unit) {
-    if (selected) {
-        Button(onClick = onClick) {
-            Text(text)
-        }
-    } else {
-        OutlinedButton(onClick = onClick) {
-            Text(text)
-        }
-    }
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = { Text(text) },
+    )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WqActionRow(content: @Composable () -> Unit) {
-    Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         content()
     }
 }
@@ -99,4 +101,17 @@ fun WqEmptyState(text: String) {
 @Composable
 fun WqSpacer() {
     Spacer(Modifier.height(8.dp))
+}
+
+@Composable
+fun RichQuestionText(
+    text: String,
+    modifier: Modifier = Modifier,
+) {
+    Text(
+        text = renderQuestionContent(text),
+        modifier = modifier,
+        style = MaterialTheme.typography.bodyLarge,
+        color = MaterialTheme.colorScheme.onSurface,
+    )
 }
