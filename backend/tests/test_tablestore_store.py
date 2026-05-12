@@ -36,13 +36,17 @@ def test_tablestore_store_manages_practice_records():
     user = store.register("demo@example.com", "secret123")
     first = store.create_upload_draft(user.id, "oss://bucket/first.jpg")
     second = store.create_upload_draft(user.id, "oss://bucket/second.jpg")
+    confirmed_first = store.confirm_question(first.id, user.id, first.content_md_latex, first.subject, first.chapter, first.mastery)
+    confirmed_second = store.confirm_question(second.id, user.id, second.content_md_latex, second.subject, second.chapter, second.mastery)
 
     original = store.create_original_practice(user.id, count=1)
     variant = store.create_variant_practice(user.id, source_question_id=first.id, topic="二叉树")
     reviewed = store.review_practice(original.id, user.id, result="reviewing")
 
-    assert original.question_ids == [second.id]
-    assert store.questions_by_ids(user.id, [first.id, "missing"]) == [first]
+    assert confirmed_first is not None
+    assert confirmed_second is not None
+    assert original.question_ids == [confirmed_second.id]
+    assert store.questions_by_ids(user.id, [first.id, "missing"]) == [confirmed_first]
     assert variant.variant is not None
     assert variant.variant["title"] == "模拟变形题：二叉树"
     assert reviewed is not None

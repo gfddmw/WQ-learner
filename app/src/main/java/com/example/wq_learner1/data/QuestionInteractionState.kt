@@ -20,6 +20,36 @@ object QuestionFilters {
     )
 }
 
+data class LearningStats(
+    val total: Int,
+    val unfamiliar: Int,
+    val reviewing: Int,
+    val mastered: Int,
+) {
+    val activeCount: Int
+        get() = unfamiliar + reviewing
+
+    val activePercent: Int
+        get() = if (total == 0) 0 else (((activeCount * 100.0) / total) + 0.5).toInt()
+
+    val nextStepText: String
+        get() = when {
+            total == 0 -> "先上传一道错题，建立你的复习工作台"
+            unfamiliar > 0 -> "优先复盘不熟题，先把薄弱点捞出来"
+            reviewing > 0 -> "继续巩固复习中题目，今天适合做一次抽查"
+            else -> "题库状态很好，可以生成变形题保持手感"
+        }
+}
+
+fun List<MistakeQuestion>.learningStats(): LearningStats {
+    return LearningStats(
+        total = size,
+        unfamiliar = count { it.mastery == "unfamiliar" },
+        reviewing = count { it.mastery == "reviewing" },
+        mastered = count { it.mastery == "mastered" },
+    )
+}
+
 fun masteryLabel(mastery: String): String {
     return when (mastery) {
         "unfamiliar" -> "仍不熟"

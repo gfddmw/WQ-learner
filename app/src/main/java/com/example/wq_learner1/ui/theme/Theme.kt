@@ -21,9 +21,9 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = WorkbenchBlue,
+    primary = WorkbenchGreen,
     secondary = WorkbenchGreen,
-    tertiary = WorkbenchAmber,
+    tertiary = WorkbenchBlue,
     error = WorkbenchRed,
     background = WorkbenchPaper,
     surface = WorkbenchSurface,
@@ -31,6 +31,7 @@ private val LightColorScheme = lightColorScheme(
     outline = WorkbenchLine,
     onPrimary = WorkbenchSurface,
     onSecondary = WorkbenchSurface,
+    onTertiary = WorkbenchSurface,
     onBackground = WorkbenchInk,
     onSurface = WorkbenchInk,
     onSurfaceVariant = WorkbenchMuted,

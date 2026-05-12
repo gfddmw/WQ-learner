@@ -36,9 +36,16 @@ def test_upload_confirm_list_and_draw_original_question():
     draft = upload.json()
     assert draft["content_md_latex"]
     assert draft["status"] == "draft"
+    assert draft["answer_md_latex"]
+    assert draft["explanation_md_latex"]
     assert draft["image_url"].startswith("/uploads/users/")
     uploaded_file = Path(os.environ["WQ_LEARNER_UPLOAD_DIR"]) / draft["image_url"].removeprefix("/uploads/")
     assert uploaded_file.read_bytes() == b"fake-image"
+
+    before_confirm = client.get("/questions", headers=headers)
+
+    assert before_confirm.status_code == 200
+    assert before_confirm.json() == []
 
     confirm = client.post(
         f"/questions/{draft['id']}/confirm",
@@ -89,6 +96,8 @@ def test_upload_uses_ocr_result_for_draft(monkeypatch):
     assert draft["content_md_latex"] == "TCP 拥塞窗口变化公式：$cwnd=2^k$。"
     assert draft["subject"] == "计算机网络"
     assert draft["chapter"] == "传输层"
+    assert draft["answer_md_latex"] == "cwnd 按指数增长。"
+    assert draft["explanation_md_latex"] == "慢启动阶段每轮 RTT 窗口翻倍。"
 
 
 def test_variant_practice_uses_source_question_and_variant_service(monkeypatch):
@@ -148,6 +157,8 @@ class FakeOcrService:
             subject="计算机网络",
             chapter="传输层",
             confidence=2,
+            answer_md_latex="cwnd 按指数增长。",
+            explanation_md_latex="慢启动阶段每轮 RTT 窗口翻倍。",
         )
 
 

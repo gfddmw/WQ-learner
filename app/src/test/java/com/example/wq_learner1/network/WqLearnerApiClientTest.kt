@@ -1,6 +1,7 @@
 package com.example.wq_learner1.network
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -272,6 +273,46 @@ class WqLearnerApiClientTest {
         assertTrue(transport.lastRequest.body.contains("mastered"))
         assertEquals("Q-001", updated.id)
         assertEquals("mastered", updated.mastery)
+    }
+
+    @Test
+    fun updateQuestionEscapesMultilineMarkdownJsonFields() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """
+                    {
+                      "id":"Q-JSON",
+                      "user_id":"U-1",
+                      "image_url":"oss://wq-learner/q.jpg",
+                      "content_md_latex":"Line one\nLine two",
+                      "subject":"Math",
+                      "chapter":"Matrix",
+                      "status":"confirmed",
+                      "mastery":"reviewing",
+                      "answer_md_latex":"A\\B",
+                      "explanation_md_latex":"quote: \"ok\""
+                    }
+                """.trimIndent(),
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        client.updateQuestion(
+            token = "abc123",
+            questionId = "Q-JSON",
+            contentMdLatex = "Line one\nLine two",
+            subject = "Math",
+            chapter = "Matrix",
+            mastery = "reviewing",
+            answerMdLatex = "A\\B",
+            explanationMdLatex = "quote: \"ok\"\nnext",
+        )
+
+        assertTrue(transport.lastRequest.body.contains("""Line one\nLine two"""))
+        assertTrue(transport.lastRequest.body.contains("""A\\B"""))
+        assertTrue(transport.lastRequest.body.contains("""quote: \"ok\"\nnext"""))
+        assertFalse(transport.lastRequest.body.contains("Line one\nLine two"))
     }
 
     @Test

@@ -15,6 +15,8 @@ def test_simulated_ocr_returns_markdown_latex_and_classification():
     assert result.subject == "数据结构"
     assert result.chapter == "树与二叉树"
     assert result.confidence > 0
+    assert result.answer_md_latex
+    assert result.explanation_md_latex
 
 
 def test_dashscope_ocr_sends_image_and_parses_json_result():

@@ -55,4 +55,29 @@ class RichQuestionTextTest {
         assertFalse(rendered.contains("$"))
         assertFalse(rendered.contains("\\geq"))
     }
+    @Test
+    fun rendersMatrixWithLargeSquareBrackets() {
+        val rendered = renderQuestionContent(
+            "${'$'}${'$'}\\begin{pmatrix}1 & 0 \\\\ 0 & 1\\end{pmatrix}${'$'}${'$'}"
+        )
+
+        assertTrue(rendered.contains("\u23a1 1  0 \u23a4"))
+        assertTrue(rendered.contains("\u23a3 0  1 \u23a6"))
+        assertFalse(rendered.contains("\\begin"))
+        assertFalse(rendered.contains("("))
+        assertFalse(rendered.contains(")"))
+    }
+
+    @Test
+    fun preparesQuestionMarkdownWithoutStrippingMathOrMarkdown() {
+        val prepared = prepareQuestionMarkdown(
+            "先证明 **单调性**\\n再计算 ${'$'}a_i \\geq 0${'$'}\\n${'$'}${'$'}\\frac{1}{n}${'$'}${'$'}\\n`O(n)`"
+        )
+
+        assertTrue(prepared.contains("**单调性**"))
+        assertTrue(prepared.contains("${'$'}a_i \\geq 0${'$'}"))
+        assertTrue(prepared.contains("${'$'}${'$'}\\frac{1}{n}${'$'}${'$'}"))
+        assertTrue(prepared.contains("`O(n)`"))
+        assertFalse(prepared.contains("\\n"))
+    }
 }

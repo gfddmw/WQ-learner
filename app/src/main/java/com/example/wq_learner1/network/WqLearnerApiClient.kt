@@ -472,7 +472,27 @@ private fun String.jsonValue(key: String): String {
 }
 
 private fun String.jsonEscape(): String {
-    return replace("\\", "\\\\").replace("\"", "\\\"")
+    return buildString {
+        this@jsonEscape.forEach { char ->
+            when (char) {
+                '\\' -> append("\\\\")
+                '"' -> append("\\\"")
+                '\b' -> append("\\b")
+                '\u000C' -> append("\\f")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> {
+                    if (char.code < 0x20) {
+                        append("\\u")
+                        append(char.code.toString(16).padStart(4, '0'))
+                    } else {
+                        append(char)
+                    }
+                }
+            }
+        }
+    }
 }
 
 private fun String.jsonUnescape(): String {

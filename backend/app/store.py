@@ -277,7 +277,7 @@ class SQLiteStore:
         subject: str | None = None,
         chapter: str | None = None,
     ) -> list[QuestionRecord]:
-        query = "SELECT * FROM questions WHERE user_id = ?"
+        query = "SELECT * FROM questions WHERE user_id = ? AND status = 'confirmed'"
         params: list[str] = [user_id]
         if subject:
             query += " AND subject = ?"
@@ -622,7 +622,11 @@ class TableStoreStore:
         chapter: str | None = None,
     ) -> list[QuestionRecord]:
         rows = self.adapter.get_range(TABLE_QUESTIONS, [("user_id", user_id)])
-        questions = [question for row in rows if (question := self._row_to_question(row)) is not None]
+        questions = [
+            question
+            for row in rows
+            if (question := self._row_to_question(row)) is not None and question.status == "confirmed"
+        ]
         if subject:
             questions = [question for question in questions if question.subject == subject]
         if chapter:

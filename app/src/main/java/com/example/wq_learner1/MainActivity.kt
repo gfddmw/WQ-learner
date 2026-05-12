@@ -56,6 +56,7 @@ import com.example.wq_learner1.data.QuestionBankResult
 import com.example.wq_learner1.data.compactSubjectLabel
 import com.example.wq_learner1.data.drawPracticeQuestion
 import com.example.wq_learner1.data.filterQuestions
+import com.example.wq_learner1.data.learningStats
 import com.example.wq_learner1.data.masteryLabel
 import com.example.wq_learner1.data.renderQuestionContent
 import com.example.wq_learner1.data.upsertFirstById
@@ -75,6 +76,8 @@ import com.example.wq_learner1.ui.components.RichQuestionText
 import com.example.wq_learner1.ui.components.WqScreen
 import com.example.wq_learner1.ui.components.WqStatusPill
 import com.example.wq_learner1.ui.components.WqTaskCard
+import com.example.wq_learner1.ui.components.WqLearningSummary
+import com.example.wq_learner1.ui.components.WqStudyHint
 import com.example.wq_learner1.ui.theme.WQlearner1Theme
 
 class MainActivity : ComponentActivity() {
@@ -102,6 +105,9 @@ class PracticeState(
 
     val current: MistakeQuestion?
         get() = questions.firstOrNull { it.id == currentQuestionId } ?: questions.drawPracticeQuestion(null)
+
+    val stats
+        get() = questions.learningStats()
 
     fun drawOriginalQuestion(context: android.content.Context) {
         val next = questions.drawPracticeQuestion(previousQuestionId = currentQuestionId)
@@ -185,7 +191,10 @@ private fun WqLearnerApp() {
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 3.dp,
+            ) {
                 MainTab.entries.forEach { tab ->
                     NavigationBarItem(
                         selected = selectedTab == tab,
@@ -301,17 +310,6 @@ private fun UploadScreen(
                     subject = draft.subject
                     chapter = draft.chapter
                     mastery = draft.mastery
-                    onSave(
-                        MistakeQuestion(
-                            id = draft.id,
-                            content = draft.contentMdLatex,
-                            subject = draft.subject,
-                            chapter = draft.chapter,
-                            mastery = draft.mastery,
-                            answer = draft.answerMdLatex,
-                            explanation = draft.explanationMdLatex,
-                        ),
-                    )
                     isUploading = false
                 }
             } catch (error: Exception) {
@@ -390,9 +388,14 @@ private fun UploadScreen(
     }
 
     WqScreen {
-        WqPageHeader(title = "上传错题")
+        WqPageHeader(
+            title = "错题工作台",
+            subtitle = "拍照或选图后先校正题干，再确认入库。",
+            meta = "UPLOAD",
+        )
+        WqStudyHint("建议流程：上传图片 -> 校正 OCR 题干和答案 -> 确认入库。每道题入库后会自动进入题库和练习复盘。")
 
-        WqTaskCard(title = "图片草稿") {
+        WqTaskCard(title = "图片草稿", subtitle = "保留原图，方便对照校正") {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -436,6 +439,8 @@ private fun UploadScreen(
                             imageState = imageState.clear()
                             draftQuestionId = null
                             draftContent = ""
+                            draftAnswer = ""
+                            draftExplanation = ""
                             subject = "数据结构"
                             chapter = "待分类"
                             mastery = "unfamiliar"
@@ -447,7 +452,11 @@ private fun UploadScreen(
             }
         }
 
-        WqTaskCard(title = "识别校正") {
+        WqTaskCard(
+            title = "识别校正",
+            subtitle = if (draftContent.isBlank()) "等待上传后自动填充" else "确认题干、科目和章节",
+            accentColor = MaterialTheme.colorScheme.tertiary,
+        ) {
             OutlinedTextField(
                 value = draftContent,
                 onValueChange = {
@@ -480,6 +489,22 @@ private fun UploadScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = draftAnswer,
+                onValueChange = { draftAnswer = it },
+                label = { Text("答案") },
+                minLines = 2,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(12.dp))
+            OutlinedTextField(
+                value = draftExplanation,
+                onValueChange = { draftExplanation = it },
+                label = { Text("解析") },
+                minLines = 3,
+                modifier = Modifier.fillMaxWidth(),
+            )
             Spacer(Modifier.height(12.dp))
             Button(
                 onClick = { confirmDraft() },
@@ -539,6 +564,7 @@ private fun QuestionBankScreen(
     var selectedMastery by remember { mutableStateOf(QuestionFilters.ALL) }
     var editingQuestion by remember { mutableStateOf<MistakeQuestion?>(null) }
     val visibleQuestions = questions.filterQuestions(selectedSubject, selectedMastery)
+    val stats = questions.learningStats()
 
     fun refreshFromBackend() {
         Thread {
@@ -563,7 +589,7 @@ private fun QuestionBankScreen(
         val token = sessionState.accessToken ?: return
         Thread {
             try {
-                apiClient.updateQuestion(
+                val saved = apiClient.updateQuestion(
                     token = token,
                     questionId = updated.id,
                     contentMdLatex = updated.content,
@@ -574,7 +600,17 @@ private fun QuestionBankScreen(
                     explanationMdLatex = updated.explanation,
                 )
                 mainHandler.post {
-                    questions.upsertFirstById(updated)
+                    questions.upsertFirstById(
+                        MistakeQuestion(
+                            id = saved.id,
+                            content = saved.contentMdLatex,
+                            subject = saved.subject,
+                            chapter = saved.chapter,
+                            mastery = saved.mastery,
+                            answer = saved.answerMdLatex,
+                            explanation = saved.explanationMdLatex,
+                        ),
+                    )
                     android.widget.Toast.makeText(context, "已更新", android.widget.Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
@@ -594,7 +630,12 @@ private fun QuestionBankScreen(
     }
 
     WqScreen {
-        WqPageHeader(title = "云端题库")
+        WqPageHeader(
+            title = "云端题库",
+            subtitle = "按科目和掌握度整理错题，像复习笔记一样维护。",
+            meta = "BANK",
+        )
+        WqLearningSummary(stats)
         WqActionRow {
             QuestionFilters.subjects.forEach { subject ->
                 WqStatusPill(
@@ -673,7 +714,12 @@ private fun PracticeScreen(
     }
 
     WqScreen {
-        WqPageHeader(title = "练习复盘")
+        WqPageHeader(
+            title = "练习复盘",
+            subtitle = "先处理最需要复盘的题，再用变形题检查迁移能力。",
+            meta = "PRACTICE",
+        )
+        WqLearningSummary(practiceState.stats)
         WqActionRow {
             Button(onClick = { practiceState.drawOriginalQuestion(context) }) {
                 Text("抽原题")
@@ -687,7 +733,10 @@ private fun PracticeScreen(
             WqEmptyState("题库为空，请先上传。")
         } else if (practiceState.mode == "original") {
             var showOriginalAnswer by remember(current.id) { mutableStateOf(false) }
-            WqTaskCard(title = "原题练习") {
+            WqTaskCard(
+                title = "原题练习",
+                subtitle = "先回忆解法，再展开答案解析",
+            ) {
                 QuestionSummary(current)
                 if (!showOriginalAnswer) {
                     androidx.compose.material3.TextButton(onClick = { showOriginalAnswer = true }) {
@@ -706,7 +755,11 @@ private fun PracticeScreen(
             }
         } else {
             var showVariantAnswer by remember(practiceState.variant?.sourceQuestionId) { mutableStateOf(false) }
-            WqTaskCard(title = practiceState.variant?.title ?: "变形练习") {
+            WqTaskCard(
+                title = practiceState.variant?.title ?: "变形练习",
+                subtitle = "围绕当前错题生成同知识点练习",
+                accentColor = MaterialTheme.colorScheme.tertiary,
+            ) {
                 if (practiceState.variant == null) {
                     Text(
                         text = if (practiceState.isGenerating) "正在生成..." else "基于当前题目生成变形题。",
@@ -775,8 +828,12 @@ private fun MeScreen(
     }
 
     WqScreen {
-        WqPageHeader(title = "我的")
-        WqTaskCard(title = "账号登录") {
+        WqPageHeader(
+            title = "我的",
+            subtitle = "保持登录后，上传、题库和练习记录会同步到云端。",
+            meta = "ACCOUNT",
+        )
+        WqTaskCard(title = "账号登录", subtitle = "使用同一账号保存你的错题工作台") {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -808,7 +865,11 @@ private fun MeScreen(
                 }
             }
         }
-        WqTaskCard(title = "账号状态") {
+        WqTaskCard(
+            title = "账号状态",
+            subtitle = if (sessionState.isLoggedIn) "云端同步可用" else "登录后开启云端题库",
+            accentColor = MaterialTheme.colorScheme.secondary,
+        ) {
             Text(status, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text("账号：${sessionState.email ?: "未登录"}")
@@ -823,7 +884,13 @@ private fun QuestionCard(
 ) {
     WqTaskCard(
         title = "${question.subject} / ${question.chapter}",
-        modifier = Modifier.clickable { onClick() }
+        modifier = Modifier.clickable { onClick() },
+        subtitle = masteryLabel(question.mastery),
+        accentColor = when (question.mastery) {
+            "mastered" -> MaterialTheme.colorScheme.secondary
+            "reviewing" -> MaterialTheme.colorScheme.tertiary
+            else -> MaterialTheme.colorScheme.primary
+        },
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),

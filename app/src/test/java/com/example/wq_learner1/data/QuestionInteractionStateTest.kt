@@ -49,6 +49,26 @@ class QuestionInteractionStateTest {
     }
 
     @Test
+    fun learningStatsCountMasteryStatesForWorkspaceSummary() {
+        val stats = questions.learningStats()
+
+        assertEquals(3, stats.total)
+        assertEquals(1, stats.unfamiliar)
+        assertEquals(1, stats.reviewing)
+        assertEquals(1, stats.mastered)
+        assertEquals(67, stats.activePercent)
+    }
+
+    @Test
+    fun learningStatsHandleEmptyQuestionBank() {
+        val stats = emptyList<MistakeQuestion>().learningStats()
+
+        assertEquals(0, stats.total)
+        assertEquals(0, stats.activePercent)
+        assertEquals("先上传一道错题，建立你的复习工作台", stats.nextStepText)
+    }
+
+    @Test
     fun drawPracticeQuestionReturnsNullForEmptyList() {
         assertNull(emptyList<MistakeQuestion>().drawPracticeQuestion(previousQuestionId = null))
     }

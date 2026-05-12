@@ -45,6 +45,14 @@ fun renderQuestionContent(raw: String): String {
         .trim()
 }
 
+fun prepareQuestionMarkdown(raw: String): String {
+    return raw
+        .replace("\r\n", "\n")
+        .replace("\r", "\n")
+        .replace("\\n", "\n")
+        .trim()
+}
+
 fun String.hasRawQuestionMarkup(): Boolean {
     return contains("**") ||
         contains("```") ||
@@ -95,6 +103,10 @@ private fun renderLatex(raw: String): String {
     text = replaceCommandWithOneGroup(text, "\\vec") { "${renderLatex(it)}\u20D7" }
     text = replaceCommandWithOneGroup(text, "\\hat") { "${renderLatex(it)}\u0302" }
     text = replaceCommandWithOneGroup(text, "\\tilde") { "${renderLatex(it)}\u0303" }
+
+    text = text.replace(matrixEnvironmentPattern) { match ->
+        renderSquareBracketMatrix(match.groupValues[2])
+    }
 
     // Handle Matrix environments (p, b, B, v, V matrices)
     val matrixPattern = Regex("""\\begin\{([pbBvV]?)matrix\}(.*?)\\end\{\1matrix\}""", RegexOption.DOT_MATCHES_ALL)
@@ -200,8 +212,41 @@ private fun renderLatex(raw: String): String {
     return text
         .replace("{", "")
         .replace("}", "")
-        .replace(Regex("""\s+"""), " ")
+        .lines()
+        .joinToString("\n") { line -> line.replace(Regex("""[ \t]{3,}"""), " ").trimEnd() }
         .trim()
+}
+
+private val matrixEnvironmentPattern =
+    Regex("""\\begin\{([pbBvV]?)matrix\}(.*?)\\end\{\1matrix\}""", RegexOption.DOT_MATCHES_ALL)
+
+private fun renderSquareBracketMatrix(rawContent: String): String {
+    val renderedRows = rawContent
+        .trim()
+        .split("\\\\")
+        .map { row -> row.trim() }
+        .filter { it.isNotBlank() }
+        .map { row ->
+            row.split("&").joinToString("  ") { cell -> renderLatex(cell.trim()) }
+        }
+
+    if (renderedRows.isEmpty()) {
+        return ""
+    }
+    if (renderedRows.size == 1) {
+        return "[ ${renderedRows.first()} ]"
+    }
+
+    val width = renderedRows.maxOf { it.length }
+    val paddedRows = renderedRows.map { it.padEnd(width) }
+    return buildString {
+        append('\n')
+        paddedRows.forEachIndexed { index, row ->
+            val left = if (index == 0) "\u23a1" else if (index == paddedRows.lastIndex) "\u23a3" else "\u23a2"
+            val right = if (index == 0) "\u23a4" else if (index == paddedRows.lastIndex) "\u23a6" else "\u23a5"
+            append(left).append(' ').append(row).append(' ').append(right).append('\n')
+        }
+    }
 }
 
 private fun replaceCommandWithTwoGroups(

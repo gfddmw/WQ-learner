@@ -10,7 +10,6 @@ def main() -> None:
         host="0.0.0.0",
         port=port,
         timeout_keep_alive=120,
-        timeout_notify=120,
     )
 
 
