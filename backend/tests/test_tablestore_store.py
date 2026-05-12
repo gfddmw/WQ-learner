@@ -1,4 +1,4 @@
-from app.store import Store, TableStoreStore
+from app.store import Store, TableStoreStore, _tablestore_response_rows
 
 
 def test_tablestore_store_registers_logs_in_and_manages_questions():
@@ -47,6 +47,14 @@ def test_tablestore_store_manages_practice_records():
     assert variant.variant["title"] == "模拟变形题：二叉树"
     assert reviewed is not None
     assert reviewed.result == "reviewing"
+
+
+def test_tablestore_response_rows_reads_aliyun_sdk_row_list_position():
+    row = object()
+
+    rows = _tablestore_response_rows(("consumed", None, [row], None))
+
+    assert rows == [row]
 
 
 class FakeTableStoreAdapter:

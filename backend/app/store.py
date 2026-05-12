@@ -481,7 +481,6 @@ class AliyunTableStoreAdapter:
             self.tablestore.Direction.FORWARD,
             inclusive_start_primary_key,
             exclusive_end_primary_key,
-            columns_to_get=[],
             limit=100,
             max_version=1,
         )
@@ -841,7 +840,11 @@ def _tablestore_response_rows(response: Any) -> list[Any]:
         return []
     if hasattr(response, "rows"):
         return list(response.rows)
+    if hasattr(response, "row_list"):
+        return list(response.row_list)
     if isinstance(response, tuple) and len(response) >= 2:
+        if len(response) >= 3:
+            return list(response[2] or [])
         return list(response[1] or [])
     return list(response or [])
 
