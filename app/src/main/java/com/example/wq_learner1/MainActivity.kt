@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -178,25 +179,6 @@ private fun UploadScreen(
     var isUploading by remember { mutableStateOf(false) }
     var isConfirming by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf("选择图片后会自动上传云端识别") }
-    val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent(),
-    ) { uri ->
-        if (uri != null) {
-            recognizeSelectedImage(uri.toString())
-        }
-    }
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture(),
-    ) { success ->
-        val result = cameraState.complete(success)
-        cameraState = result.cameraState
-        val selectedImageUri = result.imageState?.selectedImageUri
-        if (!selectedImageUri.isNullOrBlank()) {
-            recognizeSelectedImage(selectedImageUri)
-        } else {
-            status = "已取消拍照"
-        }
-    }
     var draftContent by remember { mutableStateOf("") }
     val classification = SubjectClassifier.classify(draftContent)
     var subject by remember { mutableStateOf(classification.subject.ifBlank { "数据结构" }) }
@@ -315,6 +297,26 @@ private fun UploadScreen(
                 }
             }
         }.start()
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent(),
+    ) { uri ->
+        if (uri != null) {
+            recognizeSelectedImage(uri.toString())
+        }
+    }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+    ) { success ->
+        val result = cameraState.complete(success)
+        cameraState = result.cameraState
+        val selectedImageUri = result.imageState?.selectedImageUri
+        if (!selectedImageUri.isNullOrBlank()) {
+            recognizeSelectedImage(selectedImageUri)
+        } else {
+            status = "已取消拍照"
+        }
     }
 
     WqScreen {
