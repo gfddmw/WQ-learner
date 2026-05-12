@@ -720,6 +720,8 @@ private fun MeScreen(
     var tokenPreview by remember {
         mutableStateOf(sessionState.accessToken?.take(8).orEmpty())
     }
+    var cloudStatus by remember { mutableStateOf("未检查") }
+    var isCheckingCloud by remember { mutableStateOf(false) }
 
     fun loginAfterOptionalRegister(registerFirst: Boolean) {
         status = if (registerFirst) "正在注册并登录..." else "正在登录..."
@@ -739,34 +741,27 @@ private fun MeScreen(
         }.start()
     }
 
+    fun checkCloudStatus() {
+        if (isCheckingCloud) return
+        isCheckingCloud = true
+        cloudStatus = "正在检查云端服务..."
+        Thread {
+            try {
+                val health = apiClient.healthCheck()
+                cloudStatus = "FC 正常：${health.service} / ${health.runtime}"
+            } catch (error: Exception) {
+                cloudStatus = "云端检查失败：${error.message}"
+            } finally {
+                isCheckingCloud = false
+            }
+        }.start()
+    }
+
     WqScreen {
         WqPageHeader(
             title = "我的",
-            subtitle = "当前仅连接函数计算公网 API。",
+            subtitle = "管理账号登录和云端服务连接。",
         )
-        WqTaskCard(title = "后端环境") {
-            OutlinedTextField(
-                value = endpointDraft,
-                onValueChange = { endpointDraft = it },
-                label = { Text("API 地址") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Button(
-                    onClick = {
-                        onBaseUrlChange(endpointDraft)
-                        tokenPreview = ""
-                        endpointDraft = endpointState.withBaseUrl(endpointDraft).baseUrl
-                        status = "已应用云端 API 地址，请重新登录"
-                    },
-                ) {
-                    Text("应用地址")
-                }
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(endpointState.statusText)
-        }
         WqTaskCard(title = "账号登录") {
             OutlinedTextField(
                 value = email,
@@ -804,12 +799,38 @@ private fun MeScreen(
             Text(status, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text("Token：${tokenPreview.ifBlank { "无" }}")
-            Text(endpointState.statusText)
+            Text("账号：${sessionState.email ?: "未登录"}")
         }
-        WqTaskCard(title = "开发状态") {
-            Text("Android：仅使用云端 API")
-            Text("后端：函数计算 + OSS + 表格存储")
-            Text("模型：通义千问 VL OCR 与变形题生成")
+        WqTaskCard(title = "云端状态") {
+            Text(endpointState.statusText)
+            Text("连接：$cloudStatus", fontWeight = FontWeight.Bold)
+            Button(
+                onClick = { checkCloudStatus() },
+                enabled = !isCheckingCloud,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (isCheckingCloud) "检查中..." else "检查云端状态")
+            }
+        }
+        WqTaskCard(title = "云端 API") {
+            OutlinedTextField(
+                value = endpointDraft,
+                onValueChange = { endpointDraft = it },
+                label = { Text("API 地址") },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = {
+                    onBaseUrlChange(endpointDraft)
+                    tokenPreview = ""
+                    endpointDraft = endpointState.withBaseUrl(endpointDraft).baseUrl
+                    status = "已应用云端 API 地址，请重新登录"
+                },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("应用地址")
+            }
         }
     }
 }
