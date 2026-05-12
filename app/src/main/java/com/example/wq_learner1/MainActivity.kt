@@ -16,20 +16,13 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -66,6 +59,10 @@ import com.example.wq_learner1.network.ApiVariantQuestion
 import com.example.wq_learner1.network.SessionState
 import com.example.wq_learner1.network.SharedPreferencesSessionStore
 import com.example.wq_learner1.network.WqLearnerApiClient
+import com.example.wq_learner1.ui.components.WqEmptyState
+import com.example.wq_learner1.ui.components.WqPageHeader
+import com.example.wq_learner1.ui.components.WqScreen
+import com.example.wq_learner1.ui.components.WqTaskCard
 import com.example.wq_learner1.ui.theme.WQlearner1Theme
 
 private enum class MainTab(val label: String) {
@@ -270,13 +267,13 @@ private fun UploadScreen(
         }.start()
     }
 
-    ScreenColumn {
-        ScreenTitle(
+    WqScreen {
+        WqPageHeader(
             title = "上传错题",
             subtitle = "选择图片后会上传到当前后端 API，并返回错题草稿。",
         )
 
-        InfoCard(title = "图片草稿") {
+        WqTaskCard(title = "图片草稿") {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -335,7 +332,7 @@ private fun UploadScreen(
             )
         }
 
-        InfoCard(title = "识别校正") {
+        WqTaskCard(title = "识别校正") {
             OutlinedTextField(
                 value = draftContent,
                 onValueChange = {
@@ -447,8 +444,8 @@ private fun QuestionBankScreen(
         }.start()
     }
 
-    ScreenColumn {
-        ScreenTitle(
+    WqScreen {
+        WqPageHeader(
             title = "云端错题库",
             subtitle = "登录后可按科目从云端 /questions 读取错题。",
         )
@@ -474,7 +471,7 @@ private fun QuestionBankScreen(
             QuestionCard(question)
         }
         if (visibleQuestions.isEmpty()) {
-            EmptyState("当前筛选下还没有错题。")
+            WqEmptyState("当前筛选下还没有错题。")
         }
     }
 }
@@ -525,8 +522,8 @@ private fun PracticeScreen(
         }.start()
     }
 
-    ScreenColumn {
-        ScreenTitle(
+    WqScreen {
+        WqPageHeader(
             title = "练习复盘",
             subtitle = "支持抽现有错题，也支持由云端大模型生成变形题。",
         )
@@ -546,15 +543,15 @@ private fun PracticeScreen(
         )
         Spacer(Modifier.height(8.dp))
         if (current == null) {
-            EmptyState("题库为空，请先上传错题。")
+            WqEmptyState("题库为空，请先上传错题。")
         } else if (mode == "original") {
-            InfoCard(title = "原题练习") {
+            WqTaskCard(title = "原题练习") {
                 QuestionSummary(current)
                 Spacer(Modifier.height(12.dp))
                 ReviewButtons()
             }
         } else {
-            InfoCard(title = variant?.title ?: "大模型变形题") {
+            WqTaskCard(title = variant?.title ?: "大模型变形题") {
                 if (variant == null) {
                     Text(
                         text = "点击“生成变形题”后，将基于「${current.chapter}」从云端生成。",
@@ -620,12 +617,12 @@ private fun MeScreen(
         }.start()
     }
 
-    ScreenColumn {
-        ScreenTitle(
+    WqScreen {
+        WqPageHeader(
             title = "我的",
             subtitle = "当前仅连接函数计算公网 API。",
         )
-        InfoCard(title = "后端环境") {
+        WqTaskCard(title = "后端环境") {
             OutlinedTextField(
                 value = endpointDraft,
                 onValueChange = { endpointDraft = it },
@@ -648,7 +645,7 @@ private fun MeScreen(
             Spacer(Modifier.height(6.dp))
             Text(endpointState.statusText)
         }
-        InfoCard(title = "账号登录") {
+        WqTaskCard(title = "账号登录") {
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -681,13 +678,13 @@ private fun MeScreen(
                 }
             }
         }
-        InfoCard(title = "连接状态") {
+        WqTaskCard(title = "连接状态") {
             Text(status, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(6.dp))
             Text("Token：${tokenPreview.ifBlank { "无" }}")
             Text(endpointState.statusText)
         }
-        InfoCard(title = "开发状态") {
+        WqTaskCard(title = "开发状态") {
             Text("Android：仅使用云端 API")
             Text("后端：函数计算 + OSS + 表格存储")
             Text("模型：通义千问 VL OCR 与变形题生成")
@@ -696,50 +693,8 @@ private fun MeScreen(
 }
 
 @Composable
-private fun ScreenColumn(content: @Composable ColumnScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-        content = content,
-    )
-}
-
-@Composable
-private fun ScreenTitle(title: String, subtitle: String) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun InfoCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(4.dp))
-            content()
-        }
-    }
-}
-
-@Composable
 private fun QuestionCard(question: MistakeQuestion) {
-    InfoCard(title = "${question.subject} / ${question.chapter}") {
+    WqTaskCard(title = "${question.subject} / ${question.chapter}") {
         QuestionSummary(question)
     }
 }
@@ -764,20 +719,6 @@ private fun ReviewButtons() {
         Button(onClick = {}) {
             Text("已掌握")
         }
-    }
-}
-
-@Composable
-private fun EmptyState(text: String) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.padding(18.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
     }
 }
 
