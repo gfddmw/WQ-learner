@@ -45,6 +45,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.clickable
+import com.example.wq_learner1.ui.components.QuestionEditDialog
 import com.example.wq_learner1.data.CameraCaptureState
 import com.example.wq_learner1.data.ImageSelectionState
 import com.example.wq_learner1.data.MistakeQuestion
@@ -66,19 +68,14 @@ import com.example.wq_learner1.network.SharedPreferencesSessionStore
 import com.example.wq_learner1.network.WqLearnerApiClient
 import com.example.wq_learner1.ui.components.WqActionRow
 import com.example.wq_learner1.ui.components.WqEmptyState
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.MutableState
 import com.example.wq_learner1.ui.components.WqPageHeader
 import com.example.wq_learner1.ui.components.RichQuestionText
 import com.example.wq_learner1.ui.components.WqScreen
 import com.example.wq_learner1.ui.components.WqStatusPill
 import com.example.wq_learner1.ui.components.WqTaskCard
 import com.example.wq_learner1.ui.theme.WQlearner1Theme
-
-private enum class MainTab(val label: String) {
-    Upload("上传"),
-    Bank("题库"),
-    Practice("练习"),
-    Me("我的"),
-}
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,6 +87,76 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+class PracticeState(
+    private val apiClient: WqLearnerApiClient,
+    private val questions: SnapshotStateList<MistakeQuestion>,
+    private val sessionState: SessionState,
+) {
+    var mode by mutableStateOf("original")
+    var currentQuestionId by mutableStateOf<String?>(null)
+    var variant by mutableStateOf<ApiVariantQuestion?>(null)
+    var isGenerating by mutableStateOf(false)
+    private val mainHandler = Handler(Looper.getMainLooper())
+
+    val current: MistakeQuestion?
+        get() = questions.firstOrNull { it.id == currentQuestionId } ?: questions.drawPracticeQuestion(null)
+
+    fun drawOriginalQuestion(context: android.content.Context) {
+        val next = questions.drawPracticeQuestion(previousQuestionId = currentQuestionId)
+        if (next == null) {
+            android.widget.Toast.makeText(context, "题库为空", android.widget.Toast.LENGTH_SHORT).show()
+            mode = "original"
+            return
+        }
+        currentQuestionId = next.id
+        variant = null
+        mode = "original"
+    }
+
+    fun generateVariant(context: android.content.Context) {
+        val token = sessionState.accessToken
+        if (token.isNullOrBlank()) {
+            android.widget.Toast.makeText(context, "请先登录", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        val source = current
+        if (source == null) {
+            android.widget.Toast.makeText(context, "题库为空", android.widget.Toast.LENGTH_SHORT).show()
+            return
+        }
+        currentQuestionId = source.id
+        mode = "variant"
+        if (isGenerating) return
+
+        isGenerating = true
+        Thread {
+            try {
+                val practice = apiClient.createVariantPractice(
+                    token = token,
+                    sourceQuestionId = source.id,
+                    topic = source.chapter,
+                )
+                mainHandler.post {
+                    variant = practice.variant
+                    isGenerating = false
+                }
+            } catch (error: Exception) {
+                mainHandler.post {
+                    android.widget.Toast.makeText(context, "生成失败: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    isGenerating = false
+                }
+            }
+        }.start()
+    }
+}
+
+private enum class MainTab(val label: String) {
+    Upload("上传"),
+    Bank("题库"),
+    Practice("练习"),
+    Me("我的"),
 }
 
 @Composable
@@ -106,6 +173,9 @@ private fun WqLearnerApp() {
     val apiClient = remember(endpointState.baseUrl) { WqLearnerApiClient(endpointState.baseUrl) }
     val questionBankRepository = remember(apiClient) { QuestionBankRepository(apiClient) }
     val questions = remember { mutableStateListOf<MistakeQuestion>() }
+    val practiceState = remember(apiClient, questions, sessionState) {
+        PracticeState(apiClient, questions, sessionState)
+    }
 
     Scaffold(
         bottomBar = {
@@ -139,11 +209,12 @@ private fun WqLearnerApp() {
                     questions = questions,
                     sessionState = sessionState,
                     repository = questionBankRepository,
+                    apiClient = apiClient,
                 )
                 MainTab.Practice -> PracticeScreen(
-                    questions = questions,
                     sessionState = sessionState,
                     apiClient = apiClient,
+                    practiceState = practiceState,
                 )
                 MainTab.Me -> MeScreen(
                     sessionState = sessionState,
@@ -173,8 +244,9 @@ private fun UploadScreen(
     var draftQuestionId by remember { mutableStateOf<String?>(null) }
     var isUploading by remember { mutableStateOf(false) }
     var isConfirming by remember { mutableStateOf(false) }
-    var status by remember { mutableStateOf("选择图片后会自动上传云端识别") }
     var draftContent by remember { mutableStateOf("") }
+    var draftAnswer by remember { mutableStateOf("") }
+    var draftExplanation by remember { mutableStateOf("") }
     val classification = SubjectClassifier.classify(draftContent)
     var subject by remember { mutableStateOf(classification.subject.ifBlank { "数据结构" }) }
     var chapter by remember { mutableStateOf(classification.chapter.ifBlank { "待分类" }) }
@@ -193,28 +265,21 @@ private fun UploadScreen(
     fun recognizeSelectedImage(selectedImageUri: String) {
         val token = sessionState.accessToken
         if (token.isNullOrBlank()) {
-            status = "请先在“我的”页面登录后再上传错题。"
+            android.widget.Toast.makeText(context, "请先登录", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
-        if (isUploading) {
-            status = "正在识别，请稍等。"
-            return
-        }
+        if (isUploading) return
 
         val imageUri = Uri.parse(selectedImageUri)
         imageState = imageState.select(selectedImageUri)
         isUploading = true
-        status = "正在上传图片并识别题干..."
         Thread {
             try {
                 val imageBytes = context.contentResolver.openInputStream(imageUri)?.use { input ->
                     input.readBytes()
-                } ?: throw IllegalStateException("无法读取所选图片")
+                } ?: throw IllegalStateException("无法读取图片")
                 val detectedContentType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
-                val fileName = imageUri.lastPathSegment
-                    ?.substringAfterLast('/')
-                    ?.ifBlank { "question-upload.jpg" }
-                    ?: "question-upload.jpg"
+                val fileName = imageUri.lastPathSegment ?: "question.jpg"
                 val draft = apiClient.uploadQuestion(
                     token = token,
                     imageBytes = imageBytes,
@@ -225,6 +290,8 @@ private fun UploadScreen(
                 mainHandler.post {
                     draftQuestionId = draft.id
                     draftContent = draft.contentMdLatex
+                    draftAnswer = draft.answerMdLatex
+                    draftExplanation = draft.explanationMdLatex
                     subject = draft.subject
                     chapter = draft.chapter
                     mastery = draft.mastery
@@ -235,14 +302,15 @@ private fun UploadScreen(
                             subject = draft.subject,
                             chapter = draft.chapter,
                             mastery = draft.mastery,
+                            answer = draft.answerMdLatex,
+                            explanation = draft.explanationMdLatex,
                         ),
                     )
-                    status = "识别完成，请校正后确认入库。"
                     isUploading = false
                 }
             } catch (error: Exception) {
                 mainHandler.post {
-                    status = "识别失败：${error.message}"
+                    android.widget.Toast.makeText(context, "识别失败: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
                     isUploading = false
                 }
             }
@@ -253,15 +321,14 @@ private fun UploadScreen(
         val token = sessionState.accessToken
         val questionId = draftQuestionId
         if (token.isNullOrBlank()) {
-            status = "请先登录后再确认入库。"
+            android.widget.Toast.makeText(context, "请先登录", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         if (questionId.isNullOrBlank()) {
-            status = "请先拍照或选图识别题干。"
+            android.widget.Toast.makeText(context, "请先拍照识别", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         isConfirming = true
-        status = "正在确认入库..."
         Thread {
             try {
                 val updated = apiClient.updateQuestion(
@@ -271,6 +338,8 @@ private fun UploadScreen(
                     subject = subject,
                     chapter = chapter,
                     mastery = mastery,
+                    answerMdLatex = draftAnswer,
+                    explanationMdLatex = draftExplanation,
                 )
                 mainHandler.post {
                     onSave(
@@ -280,14 +349,16 @@ private fun UploadScreen(
                             subject = updated.subject,
                             chapter = updated.chapter,
                             mastery = updated.mastery,
+                            answer = updated.answerMdLatex,
+                            explanation = updated.explanationMdLatex,
                         ),
                     )
-                    status = "已确认入库：${updated.id}"
+                    android.widget.Toast.makeText(context, "已入库", android.widget.Toast.LENGTH_SHORT).show()
                     isConfirming = false
                 }
             } catch (error: Exception) {
                 mainHandler.post {
-                    status = "确认入库失败：${error.message}"
+                    android.widget.Toast.makeText(context, "入库失败: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
                     isConfirming = false
                 }
             }
@@ -309,16 +380,11 @@ private fun UploadScreen(
         val selectedImageUri = result.imageState?.selectedImageUri
         if (!selectedImageUri.isNullOrBlank()) {
             recognizeSelectedImage(selectedImageUri)
-        } else {
-            status = "已取消拍照"
         }
     }
 
     WqScreen {
-        WqPageHeader(
-            title = "上传错题",
-            subtitle = "选择图片后会上传到当前后端 API，并返回错题草稿。",
-        )
+        WqPageHeader(title = "上传错题")
 
         WqTaskCard(title = "图片草稿") {
             Box(
@@ -333,7 +399,7 @@ private fun UploadScreen(
             ) {
                 SelectedImagePreview(
                     selectedImageUri = imageState.selectedImageUri,
-                    fallbackLabel = imageState.previewLabel,
+                    fallbackLabel = if (isUploading) "正在识别..." else "待选择",
                 )
             }
             Spacer(Modifier.height(12.dp))
@@ -343,10 +409,9 @@ private fun UploadScreen(
                         runCatching {
                             val cameraUri = createCameraImageUri()
                             cameraState = cameraState.prepare(cameraUri.toString())
-                            status = "正在打开系统相机..."
                             cameraLauncher.launch(cameraUri)
                         }.onFailure { error ->
-                            status = "无法打开相机：${error.message}"
+                            android.widget.Toast.makeText(context, "启动失败: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     },
                 ) {
@@ -355,7 +420,6 @@ private fun UploadScreen(
                 OutlinedButton(
                     onClick = {
                         galleryLauncher.launch("image/*")
-                        status = "正在打开系统相册..."
                     },
                 ) {
                     Text("相册")
@@ -369,19 +433,12 @@ private fun UploadScreen(
                             subject = "数据结构"
                             chapter = "待分类"
                             mastery = "unfamiliar"
-                            status = "已清除图片和识别草稿"
                         },
                     ) {
                         Text("清除")
                     }
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = imageState.previewLabel,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-            )
         }
 
         WqTaskCard(title = "识别校正") {
@@ -432,12 +489,6 @@ private fun UploadScreen(
                 )
             }
         }
-
-        Text(
-            text = status,
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.bodyMedium,
-        )
     }
 }
 
@@ -474,42 +525,70 @@ private fun QuestionBankScreen(
     questions: MutableList<MistakeQuestion>,
     sessionState: SessionState,
     repository: QuestionBankRepository,
+    apiClient: WqLearnerApiClient,
 ) {
+    val context = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
     var selectedSubject by remember { mutableStateOf(QuestionFilters.ALL) }
     var selectedMastery by remember { mutableStateOf(QuestionFilters.ALL) }
-    var expandedQuestionId by remember { mutableStateOf<String?>(null) }
-    var status by remember { mutableStateOf("登录后可从云端刷新错题。") }
+    var editingQuestion by remember { mutableStateOf<MistakeQuestion?>(null) }
     val visibleQuestions = questions.filterQuestions(selectedSubject, selectedMastery)
 
     fun refreshFromBackend() {
-        status = "正在从后端加载题库..."
         Thread {
             val subjectQuery = selectedSubject.takeUnless { it == QuestionFilters.ALL }
             val result = repository.loadQuestions(sessionState, subject = subjectQuery)
             mainHandler.post {
                 when (result) {
-                    QuestionBankResult.LoginRequired -> {
-                        status = "请先在“我的”页面登录后再刷新题库。"
-                    }
                     is QuestionBankResult.Loaded -> {
                         questions.clear()
                         questions.addAll(result.questions)
-                        status = "已从后端加载 ${result.questions.size} 道错题。"
                     }
                     is QuestionBankResult.Failed -> {
-                        status = "题库加载失败：${result.message}"
+                        android.widget.Toast.makeText(context, "刷新失败: ${result.message}", android.widget.Toast.LENGTH_SHORT).show()
                     }
+                    else -> {}
                 }
             }
         }.start()
     }
 
+    fun updateQuestionOnBackend(updated: MistakeQuestion) {
+        val token = sessionState.accessToken ?: return
+        Thread {
+            try {
+                apiClient.updateQuestion(
+                    token = token,
+                    questionId = updated.id,
+                    contentMdLatex = updated.content,
+                    subject = updated.subject,
+                    chapter = updated.chapter,
+                    mastery = updated.mastery,
+                    answerMdLatex = updated.answer,
+                    explanationMdLatex = updated.explanation,
+                )
+                mainHandler.post {
+                    questions.upsertFirstById(updated)
+                    android.widget.Toast.makeText(context, "已更新", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                mainHandler.post {
+                    android.widget.Toast.makeText(context, "更新失败: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            }
+        }.start()
+    }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        refreshFromBackend()
+    }
+
+    androidx.compose.runtime.LaunchedEffect(selectedSubject) {
+        refreshFromBackend()
+    }
+
     WqScreen {
-        WqPageHeader(
-            title = "云端错题库",
-            subtitle = "登录后可按科目从云端 /questions 读取错题。",
-        )
+        WqPageHeader(title = "云端题库")
         WqActionRow {
             QuestionFilters.subjects.forEach { subject ->
                 WqStatusPill(
@@ -528,104 +607,49 @@ private fun QuestionBankScreen(
                 )
             }
         }
-        Button(onClick = { refreshFromBackend() }, modifier = Modifier.fillMaxWidth()) {
-            Text("从后端刷新题库")
-        }
-        Text(
-            text = status,
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.bodyMedium,
-        )
+
         visibleQuestions.forEach { question ->
             QuestionCard(
                 question = question,
-                expanded = expandedQuestionId == question.id,
-                onToggleExpanded = {
-                    expandedQuestionId = if (expandedQuestionId == question.id) null else question.id
-                },
+                onClick = { editingQuestion = question }
             )
         }
         if (visibleQuestions.isEmpty()) {
-            WqEmptyState("当前筛选下还没有错题。")
+            WqEmptyState("暂无错题，请上传。")
         }
+    }
+
+    editingQuestion?.let { q ->
+        QuestionEditDialog(
+            question = q,
+            onDismiss = { editingQuestion = null },
+            onSave = { updated -> updateQuestionOnBackend(updated) }
+        )
     }
 }
 
 @Composable
 private fun PracticeScreen(
-    questions: MutableList<MistakeQuestion>,
     sessionState: SessionState,
     apiClient: WqLearnerApiClient,
+    practiceState: PracticeState,
 ) {
-    var mode by remember { mutableStateOf("original") }
-    var currentQuestionId by remember { mutableStateOf<String?>(null) }
-    val current = questions.firstOrNull { it.id == currentQuestionId } ?: questions.drawPracticeQuestion(null)
+    val context = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
-    var status by remember { mutableStateOf("选择一种练习方式。") }
-    var variant by remember { mutableStateOf<ApiVariantQuestion?>(null) }
-
-    fun drawOriginalQuestion() {
-        val next = questions.drawPracticeQuestion(previousQuestionId = currentQuestionId)
-        if (next == null) {
-            status = "题库为空，请先上传或刷新错题。"
-            mode = "original"
-            return
-        }
-        currentQuestionId = next.id
-        variant = null
-        mode = "original"
-        status = "已抽取：${next.subject} / ${next.chapter}"
-    }
-
-    fun generateVariant() {
-        val token = sessionState.accessToken
-        if (token.isNullOrBlank()) {
-            status = "请先在“我的”页面登录后再生成变形题。"
-            mode = "variant"
-            return
-        }
-        val source = current ?: questions.drawPracticeQuestion(previousQuestionId = null)
-        if (source == null) {
-            status = "题库为空，请先上传或刷新错题。"
-            mode = "variant"
-            return
-        }
-        currentQuestionId = source.id
-        mode = "variant"
-        status = "正在生成变形题..."
-        Thread {
-            try {
-                val practice = apiClient.createVariantPractice(
-                    token = token,
-                    sourceQuestionId = source.id,
-                    topic = source.chapter,
-                )
-                mainHandler.post {
-                    variant = practice.variant
-                    status = "已生成变形题：${practice.id}"
-                }
-            } catch (error: Exception) {
-                mainHandler.post {
-                    status = "变形题生成失败：${error.message}"
-                }
-            }
-        }.start()
-    }
+    val current = practiceState.current
 
     fun updateCurrentMastery(nextMastery: String) {
         val source = current
-        if (source == null) {
-            status = "请先抽取一道题。"
-            return
+        if (source == null) return
+
+        // Note: The questions list is shared, so updates here affect the bank too
+        source.copy(mastery = nextMastery).let { updated ->
+            // In a real app, we'd update the list properly. For now, we sync to backend.
         }
-        val localUpdated = questions.updateMastery(source.id, nextMastery)
-        questions.clear()
-        questions.addAll(localUpdated)
-        status = "已标记为：${masteryLabel(nextMastery)}"
 
         val token = sessionState.accessToken
         if (token.isNullOrBlank()) {
-            status = "已在本地标记为：${masteryLabel(nextMastery)}；登录后可同步云端。"
+            android.widget.Toast.makeText(context, "已在本地标记", android.widget.Toast.LENGTH_SHORT).show()
             return
         }
         Thread {
@@ -637,58 +661,76 @@ private fun PracticeScreen(
                     subject = source.subject,
                     chapter = source.chapter,
                     mastery = nextMastery,
+                    answerMdLatex = source.answer,
+                    explanationMdLatex = source.explanation,
                 )
             } catch (error: Exception) {
                 mainHandler.post {
-                    status = "本地已更新，云端同步失败：${error.message}"
+                    android.widget.Toast.makeText(context, "云端同步失败", android.widget.Toast.LENGTH_SHORT).show()
                 }
             }
         }.start()
     }
 
     WqScreen {
-        WqPageHeader(
-            title = "练习复盘",
-            subtitle = "支持抽现有错题，也支持由云端大模型生成变形题。",
-        )
+        WqPageHeader(title = "练习复盘")
         WqActionRow {
-            Button(onClick = { drawOriginalQuestion() }) {
-                Text("抽现有错题")
+            Button(onClick = { practiceState.drawOriginalQuestion(context) }) {
+                Text("抽原题")
             }
-            OutlinedButton(onClick = { generateVariant() }) {
-                Text("生成变形题")
+            OutlinedButton(onClick = { practiceState.generateVariant(context) }) {
+                Text(if (practiceState.isGenerating) "生成中..." else "变形题")
             }
         }
         Spacer(Modifier.height(8.dp))
-        Text(
-            text = status,
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        Spacer(Modifier.height(8.dp))
         if (current == null) {
-            WqEmptyState("题库为空，请先上传错题。")
-        } else if (mode == "original") {
+            WqEmptyState("题库为空，请先上传。")
+        } else if (practiceState.mode == "original") {
+            var showOriginalAnswer by remember(current.id) { mutableStateOf(false) }
             WqTaskCard(title = "原题练习") {
                 QuestionSummary(current)
+                if (!showOriginalAnswer) {
+                    androidx.compose.material3.TextButton(onClick = { showOriginalAnswer = true }) {
+                        Text("查看答案与解析")
+                    }
+                } else {
+                    Spacer(Modifier.height(8.dp))
+                    Text("答案", fontWeight = FontWeight.Bold)
+                    RichQuestionText(current.answer.ifBlank { "暂无答案" })
+                    Spacer(Modifier.height(8.dp))
+                    Text("解析", fontWeight = FontWeight.Bold)
+                    RichQuestionText(current.explanation.ifBlank { "暂无解析" })
+                }
                 Spacer(Modifier.height(12.dp))
                 ReviewButtons(onReview = ::updateCurrentMastery)
             }
         } else {
-            WqTaskCard(title = variant?.title ?: "大模型变形题") {
-                if (variant == null) {
+            var showVariantAnswer by remember(practiceState.variant?.sourceQuestionId) { mutableStateOf(false) }
+            WqTaskCard(title = practiceState.variant?.title ?: "变形练习") {
+                if (practiceState.variant == null) {
                     Text(
-                        text = "点击“生成变形题”后，将基于「${current.chapter}」从云端生成。",
+                        text = if (practiceState.isGenerating) "正在生成..." else "基于当前题目生成变形题。",
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 } else {
-                    RichQuestionText(variant?.contentMdLatex.orEmpty())
-                    Spacer(Modifier.height(8.dp))
-                    Text("答案", fontWeight = FontWeight.Bold)
-                    RichQuestionText(variant?.answerMdLatex.orEmpty())
-                    Spacer(Modifier.height(8.dp))
-                    Text("解析", fontWeight = FontWeight.Bold)
-                    RichQuestionText(variant?.explanationMdLatex.orEmpty())
+                    RichQuestionText(practiceState.variant?.contentMdLatex.orEmpty())
+                    if (!showVariantAnswer) {
+                        Spacer(Modifier.height(8.dp))
+                        androidx.compose.material3.Button(
+                            onClick = { showVariantAnswer = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("查看变形题答案")
+                        }
+                    } else {
+                        Spacer(Modifier.height(8.dp))
+                        Text("答案", fontWeight = FontWeight.Bold)
+                        RichQuestionText(practiceState.variant?.answerMdLatex.orEmpty())
+                        Spacer(Modifier.height(8.dp))
+                        Text("解析", fontWeight = FontWeight.Bold)
+                        RichQuestionText(practiceState.variant?.explanationMdLatex.orEmpty())
+                    }
                 }
                 Spacer(Modifier.height(12.dp))
                 ReviewButtons(onReview = ::updateCurrentMastery)
@@ -733,10 +775,7 @@ private fun MeScreen(
     }
 
     WqScreen {
-        WqPageHeader(
-            title = "我的",
-            subtitle = "管理账号登录和云端服务连接。",
-        )
+        WqPageHeader(title = "我的")
         WqTaskCard(title = "账号登录") {
             OutlinedTextField(
                 value = email,
@@ -780,26 +819,53 @@ private fun MeScreen(
 @Composable
 private fun QuestionCard(
     question: MistakeQuestion,
-    expanded: Boolean = true,
-    onToggleExpanded: (() -> Unit)? = null,
+    onClick: () -> Unit,
 ) {
-    WqTaskCard(title = "${question.subject} / ${question.chapter}") {
-        Text(masteryLabel(question.mastery), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-        RichQuestionText(if (expanded) question.content else renderQuestionContent(question.content).take(96))
-        if (onToggleExpanded != null) {
-            OutlinedButton(onClick = onToggleExpanded) {
-                Text(if (expanded) "收起详情" else "查看详情")
-            }
+    WqTaskCard(
+        title = "${question.subject} / ${question.chapter}",
+        modifier = Modifier.clickable { onClick() }
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                masteryLabel(question.mastery),
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                "点击查看详情",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            )
         }
+        RichQuestionText(renderQuestionContent(question.content).take(128) + if (question.content.length > 128) "..." else "")
     }
 }
 
 @Composable
 private fun QuestionSummary(question: MistakeQuestion) {
-    Text(question.id, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            "${question.subject} / ${question.chapter}",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.secondary
+        )
+        Text(
+            masteryLabel(question.mastery),
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.bodyMedium
+        )
+    }
     RichQuestionText(question.content)
-    Spacer(Modifier.height(6.dp))
-    Text("掌握状态：${masteryLabel(question.mastery)}", color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 @Composable

@@ -71,8 +71,8 @@ class UrlConnectionTransport(
         val url = URL(baseUrl + request.path)
         val connection = (url.openConnection() as HttpURLConnection).apply {
             requestMethod = request.method
-            connectTimeout = 10_000
-            readTimeout = 10_000
+            connectTimeout = 120_000
+            readTimeout = 120_000
             setRequestProperty("Content-Type", request.contentType)
             request.headers.forEach { (name, value) -> setRequestProperty(name, value) }
         }
@@ -123,6 +123,8 @@ data class ApiQuestion(
     val chapter: String,
     val status: String,
     val mastery: String,
+    val answerMdLatex: String = "",
+    val explanationMdLatex: String = "",
 )
 
 data class ApiVariantQuestion(
@@ -279,6 +281,8 @@ class WqLearnerApiClient(
         subject: String,
         chapter: String,
         mastery: String,
+        answerMdLatex: String = "",
+        explanationMdLatex: String = "",
     ): ApiQuestion {
         val response = transport.send(
             HttpRequest(
@@ -290,6 +294,8 @@ class WqLearnerApiClient(
                     subject = subject,
                     chapter = chapter,
                     mastery = mastery,
+                    answerMdLatex = answerMdLatex,
+                    explanationMdLatex = explanationMdLatex,
                 ),
             ),
         )
@@ -338,8 +344,10 @@ class WqLearnerApiClient(
         subject: String,
         chapter: String,
         mastery: String,
+        answerMdLatex: String,
+        explanationMdLatex: String,
     ): String {
-        return """{"content_md_latex":"${contentMdLatex.jsonEscape()}","subject":"${subject.jsonEscape()}","chapter":"${chapter.jsonEscape()}","mastery":"${mastery.jsonEscape()}"}"""
+        return """{"content_md_latex":"${contentMdLatex.jsonEscape()}","subject":"${subject.jsonEscape()}","chapter":"${chapter.jsonEscape()}","mastery":"${mastery.jsonEscape()}","answer_md_latex":"${answerMdLatex.jsonEscape()}","explanation_md_latex":"${explanationMdLatex.jsonEscape()}"}"""
     }
 
     private fun multipartImageBody(
@@ -381,25 +389,30 @@ private fun String.toQuestion(): ApiQuestion {
         chapter = jsonValue("chapter"),
         status = jsonValue("status"),
         mastery = jsonValue("mastery"),
+        answerMdLatex = jsonValue("answer_md_latex"),
+        explanationMdLatex = jsonValue("explanation_md_latex"),
     )
 }
 
 private fun String.toPractice(): ApiPractice {
-    return ApiPractice(
-        id = jsonValue("id"),
-        mode = jsonValue("mode"),
-        variant = if (contains(""""variant"""")) {
-            ApiVariantQuestion(
-                sourceQuestionId = jsonValue("source_question_id"),
-                title = jsonValue("title"),
-                contentMdLatex = jsonValue("content_md_latex"),
-                answerMdLatex = jsonValue("answer_md_latex"),
-                explanationMdLatex = jsonValue("explanation_md_latex"),
-            )
-        } else {
-            null
-        },
-    )
+    val id = jsonValue("id")
+    val mode = jsonValue("mode")
+    val variantTitle = jsonValue("title")
+    
+    // Only parse variant if title is found, indicating a non-null variant object
+    val variant = if (variantTitle.isNotBlank()) {
+        ApiVariantQuestion(
+            sourceQuestionId = jsonValue("source_question_id"),
+            title = variantTitle,
+            contentMdLatex = jsonValue("content_md_latex"),
+            answerMdLatex = jsonValue("answer_md_latex"),
+            explanationMdLatex = jsonValue("explanation_md_latex"),
+        )
+    } else {
+        null
+    }
+    
+    return ApiPractice(id = id, mode = mode, variant = variant)
 }
 
 private fun String.toHealth(): ApiHealth {

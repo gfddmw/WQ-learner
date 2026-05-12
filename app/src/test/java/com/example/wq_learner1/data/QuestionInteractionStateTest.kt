@@ -6,9 +6,9 @@ import org.junit.Test
 
 class QuestionInteractionStateTest {
     private val questions = listOf(
-        MistakeQuestion("Q-1", "one", "数据结构", "树", "mastered"),
-        MistakeQuestion("Q-2", "two", "数学", "线性代数/矩阵论", "unfamiliar"),
-        MistakeQuestion("Q-3", "three", "数学", "概率", "reviewing"),
+        MistakeQuestion("Q-1", "one", "数据结构", "树", "mastered", "", ""),
+        MistakeQuestion("Q-2", "two", "数学", "线性代数/矩阵论", "unfamiliar", "", ""),
+        MistakeQuestion("Q-3", "three", "数学", "概率", "reviewing", "", ""),
     )
 
     @Test

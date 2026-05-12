@@ -41,6 +41,8 @@ def to_question_response(record: QuestionRecord) -> QuestionResponse:
         chapter=record.chapter,
         status=record.status,
         mastery=record.mastery,
+        answer_md_latex=record.answer_md_latex,
+        explanation_md_latex=record.explanation_md_latex,
     )
 
 
@@ -103,6 +105,8 @@ async def upload_question(
         content_md_latex=ocr_result.content_md_latex,
         subject=ocr_result.subject,
         chapter=ocr_result.chapter,
+        answer_md_latex=ocr_result.answer_md_latex,
+        explanation_md_latex=ocr_result.explanation_md_latex,
     )
     return to_question_response(record)
 
@@ -137,6 +141,8 @@ def confirm_question(
         subject=request.subject,
         chapter=request.chapter,
         mastery=request.mastery,
+        answer_md_latex=request.answer_md_latex,
+        explanation_md_latex=request.explanation_md_latex,
     )
     if record is None:
         raise HTTPException(status_code=404, detail="Question not found")

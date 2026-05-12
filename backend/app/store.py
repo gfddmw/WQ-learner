@@ -32,6 +32,8 @@ class QuestionRecord:
     chapter: str
     status: str = "draft"
     mastery: str = "unfamiliar"
+    answer_md_latex: str = ""
+    explanation_md_latex: str = ""
 
 
 @dataclass
@@ -62,6 +64,8 @@ class Store(Protocol):
         content_md_latex: str | None = None,
         subject: str | None = None,
         chapter: str | None = None,
+        answer_md_latex: str | None = None,
+        explanation_md_latex: str | None = None,
     ) -> QuestionRecord:
         ...
 
@@ -73,6 +77,8 @@ class Store(Protocol):
         subject: str,
         chapter: str,
         mastery: str,
+        answer_md_latex: str | None = None,
+        explanation_md_latex: str | None = None,
     ) -> QuestionRecord | None:
         ...
 
@@ -147,7 +153,9 @@ class SQLiteStore:
                     subject TEXT NOT NULL,
                     chapter TEXT NOT NULL,
                     status TEXT NOT NULL,
-                    mastery TEXT NOT NULL
+                    mastery TEXT NOT NULL,
+                    answer_md_latex TEXT,
+                    explanation_md_latex TEXT
                 );
 
                 CREATE TABLE IF NOT EXISTS practices (
@@ -207,6 +215,8 @@ class SQLiteStore:
         content_md_latex: str | None = None,
         subject: str | None = None,
         chapter: str | None = None,
+        answer_md_latex: str | None = None,
+        explanation_md_latex: str | None = None,
     ) -> QuestionRecord:
         content_md_latex, subject, chapter = draft_fields_or_default(
             content_md_latex,
@@ -220,6 +230,8 @@ class SQLiteStore:
             content_md_latex=content_md_latex,
             subject=subject,
             chapter=chapter,
+            answer_md_latex=answer_md_latex or "",
+            explanation_md_latex=explanation_md_latex or "",
         )
         self._save_question(question)
         return question
@@ -232,6 +244,8 @@ class SQLiteStore:
         subject: str,
         chapter: str,
         mastery: str,
+        answer_md_latex: str | None = None,
+        explanation_md_latex: str | None = None,
     ) -> QuestionRecord | None:
         question = self.get_question(question_id, user_id)
         if question is None:
@@ -241,6 +255,10 @@ class SQLiteStore:
         question.subject = subject
         question.chapter = chapter
         question.mastery = mastery
+        if answer_md_latex is not None:
+            question.answer_md_latex = answer_md_latex
+        if explanation_md_latex is not None:
+            question.explanation_md_latex = explanation_md_latex
         question.status = "confirmed"
         self._save_question(question)
         return question
@@ -345,16 +363,19 @@ class SQLiteStore:
                 """
                 INSERT INTO questions (
                     id, user_id, image_url, content_md_latex,
-                    subject, chapter, status, mastery
+                    subject, chapter, status, mastery,
+                    answer_md_latex, explanation_md_latex
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     image_url = excluded.image_url,
                     content_md_latex = excluded.content_md_latex,
                     subject = excluded.subject,
                     chapter = excluded.chapter,
                     status = excluded.status,
-                    mastery = excluded.mastery
+                    mastery = excluded.mastery,
+                    answer_md_latex = excluded.answer_md_latex,
+                    explanation_md_latex = excluded.explanation_md_latex
                 """,
                 (
                     question.id,
@@ -365,6 +386,8 @@ class SQLiteStore:
                     question.chapter,
                     question.status,
                     question.mastery,
+                    question.answer_md_latex,
+                    question.explanation_md_latex,
                 ),
             )
 
@@ -410,6 +433,8 @@ class SQLiteStore:
             chapter=row["chapter"],
             status=row["status"],
             mastery=row["mastery"],
+            answer_md_latex=row["answer_md_latex"] or "",
+            explanation_md_latex=row["explanation_md_latex"] or "",
         )
 
     @staticmethod
@@ -538,6 +563,8 @@ class TableStoreStore:
         content_md_latex: str | None = None,
         subject: str | None = None,
         chapter: str | None = None,
+        answer_md_latex: str | None = None,
+        explanation_md_latex: str | None = None,
     ) -> QuestionRecord:
         content_md_latex, subject, chapter = draft_fields_or_default(
             content_md_latex,
@@ -551,6 +578,8 @@ class TableStoreStore:
             content_md_latex=content_md_latex,
             subject=subject,
             chapter=chapter,
+            answer_md_latex=answer_md_latex or "",
+            explanation_md_latex=explanation_md_latex or "",
         )
         self._save_question(question)
         return question
@@ -563,6 +592,8 @@ class TableStoreStore:
         subject: str,
         chapter: str,
         mastery: str,
+        answer_md_latex: str | None = None,
+        explanation_md_latex: str | None = None,
     ) -> QuestionRecord | None:
         question = self.get_question(question_id, user_id)
         if question is None:
@@ -572,6 +603,10 @@ class TableStoreStore:
         question.subject = subject
         question.chapter = chapter
         question.mastery = mastery
+        if answer_md_latex is not None:
+            question.answer_md_latex = answer_md_latex
+        if explanation_md_latex is not None:
+            question.explanation_md_latex = explanation_md_latex
         question.status = "confirmed"
         self._save_question(question)
         return question
@@ -665,6 +700,8 @@ class TableStoreStore:
                 "chapter": question.chapter,
                 "status": question.status,
                 "mastery": question.mastery,
+                "answer_md_latex": question.answer_md_latex,
+                "explanation_md_latex": question.explanation_md_latex,
             },
         )
 
@@ -709,6 +746,8 @@ class TableStoreStore:
             chapter=str(row["chapter"]),
             status=str(row["status"]),
             mastery=str(row["mastery"]),
+            answer_md_latex=str(row.get("answer_md_latex") or ""),
+            explanation_md_latex=str(row.get("explanation_md_latex") or ""),
         )
 
     @staticmethod
@@ -749,6 +788,8 @@ class CloudDatabaseStore:
         content_md_latex: str | None = None,
         subject: str | None = None,
         chapter: str | None = None,
+        answer_md_latex: str | None = None,
+        explanation_md_latex: str | None = None,
     ) -> QuestionRecord:
         self._not_implemented()
 
@@ -760,6 +801,8 @@ class CloudDatabaseStore:
         subject: str,
         chapter: str,
         mastery: str,
+        answer_md_latex: str | None = None,
+        explanation_md_latex: str | None = None,
     ) -> QuestionRecord | None:
         self._not_implemented()
 

@@ -13,6 +13,8 @@ class OcrResult:
     subject: str
     chapter: str
     confidence: int
+    answer_md_latex: str = ""
+    explanation_md_latex: str = ""
 
 
 @runtime_checkable
@@ -33,6 +35,8 @@ class SimulatedOcrService:
             subject=classification.subject,
             chapter=classification.chapter,
             confidence=classification.confidence,
+            answer_md_latex="平均时间复杂度为 $O(n)$。",
+            explanation_md_latex="二叉树遍历的时间复杂度通常与节点数成正比。",
         )
 
 
@@ -81,7 +85,7 @@ class DashScopeVisionOcrService:
 
 OCR_SYSTEM_PROMPT = (
     "你是 11408 考研错题 OCR 与公式结构化助手。"
-    "请从图片中识别题干、公式、选项和关键信息，输出 Markdown + LaTeX。"
+    "请从图片中识别题干、公式、选项，并生成对应的答案和详细解析，输出 Markdown + LaTeX。"
     "只能返回 JSON，不要返回 Markdown 代码块。"
 )
 
@@ -90,7 +94,9 @@ OCR_USER_PROMPT = (
     "{\"content_md_latex\":\"Markdown + LaTeX 题干\","
     "\"subject\":\"数据结构/计算机组成原理/操作系统/计算机网络/待分类\","
     "\"chapter\":\"章节\","
-    "\"confidence\":1}"
+    "\"confidence\":1,"
+    "\"answer_md_latex\":\"Markdown + LaTeX 答案\","
+    "\"explanation_md_latex\":\"Markdown + LaTeX 解析\"}"
 )
 
 
@@ -118,6 +124,8 @@ def parse_ocr_json(content: str) -> OcrResult:
         subject=str(data["subject"]),
         chapter=str(data["chapter"]),
         confidence=int(data.get("confidence", 1)),
+        answer_md_latex=str(data.get("answer_md_latex", "")),
+        explanation_md_latex=str(data.get("explanation_md_latex", "")),
     )
 
 

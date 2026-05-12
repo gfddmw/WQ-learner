@@ -25,6 +25,8 @@ class QuestionResponse(BaseModel):
     chapter: str
     status: str
     mastery: str
+    answer_md_latex: str = ""
+    explanation_md_latex: str = ""
 
 
 class ConfirmQuestionRequest(BaseModel):
@@ -32,6 +34,8 @@ class ConfirmQuestionRequest(BaseModel):
     subject: str
     chapter: str
     mastery: str = "reviewing"
+    answer_md_latex: str = ""
+    explanation_md_latex: str = ""
 
 
 class DrawOriginalRequest(BaseModel):

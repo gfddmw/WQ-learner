@@ -23,7 +23,7 @@ class MistakeQuestionMergeTest {
                 subject = "计算机网络",
                 chapter = "传输层",
                 mastery = "unfamiliar",
-            ),
+            )
         )
 
         assertEquals(listOf("Q-002", "Q-001"), questions.map { it.id })
@@ -46,9 +46,9 @@ class MistakeQuestionMergeTest {
                 id = "Q-001",
                 content = "新内容",
                 subject = "数学",
-                chapter = "线性代数/矩阵论",
+                chapter = "微积分",
                 mastery = "unfamiliar",
-            ),
+            )
         )
 
         assertEquals(1, questions.size)

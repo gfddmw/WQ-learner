@@ -5,7 +5,13 @@ import uvicorn
 
 def main() -> None:
     port = int(os.environ.get("PORT", "9000"))
-    uvicorn.run("app.main:app", host="0.0.0.0", port=port)
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=port,
+        timeout_keep_alive=120,
+        timeout_notify=120,
+    )
 
 
 if __name__ == "__main__":

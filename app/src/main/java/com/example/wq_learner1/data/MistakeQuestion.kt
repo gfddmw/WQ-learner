@@ -6,6 +6,8 @@ data class MistakeQuestion(
     val subject: String,
     val chapter: String,
     val mastery: String,
+    val answer: String = "",
+    val explanation: String = "",
 )
 
 fun MutableList<MistakeQuestion>.upsertFirstById(question: MistakeQuestion) {

@@ -40,5 +40,7 @@ private fun ApiQuestion.toMistakeQuestion(): MistakeQuestion {
         subject = subject,
         chapter = chapter,
         mastery = mastery,
+        answer = answerMdLatex,
+        explanation = explanationMdLatex,
     )
 }
