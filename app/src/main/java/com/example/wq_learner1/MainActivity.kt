@@ -58,8 +58,8 @@ import com.example.wq_learner1.data.drawPracticeQuestion
 import com.example.wq_learner1.data.filterQuestions
 import com.example.wq_learner1.data.masteryLabel
 import com.example.wq_learner1.data.renderQuestionContent
-import com.example.wq_learner1.data.updateMastery
 import com.example.wq_learner1.data.upsertFirstById
+import com.example.wq_learner1.data.replaceMasteryById
 import com.example.wq_learner1.domain.SubjectClassifier
 import com.example.wq_learner1.network.ApiEndpointState
 import com.example.wq_learner1.network.ApiVariantQuestion
@@ -149,6 +149,12 @@ class PracticeState(
                 }
             }
         }.start()
+    }
+
+    fun markCurrentMastery(mastery: String): MistakeQuestion? {
+        val source = current ?: return null
+        currentQuestionId = source.id
+        return questions.replaceMasteryById(source.id, mastery)
     }
 }
 
@@ -639,13 +645,7 @@ private fun PracticeScreen(
     val current = practiceState.current
 
     fun updateCurrentMastery(nextMastery: String) {
-        val source = current
-        if (source == null) return
-
-        // Note: The questions list is shared, so updates here affect the bank too
-        source.copy(mastery = nextMastery).let { updated ->
-            // In a real app, we'd update the list properly. For now, we sync to backend.
-        }
+        val updated = practiceState.markCurrentMastery(nextMastery) ?: return
 
         val token = sessionState.accessToken
         if (token.isNullOrBlank()) {
@@ -656,13 +656,13 @@ private fun PracticeScreen(
             try {
                 apiClient.updateQuestion(
                     token = token,
-                    questionId = source.id,
-                    contentMdLatex = source.content,
-                    subject = source.subject,
-                    chapter = source.chapter,
+                    questionId = updated.id,
+                    contentMdLatex = updated.content,
+                    subject = updated.subject,
+                    chapter = updated.chapter,
                     mastery = nextMastery,
-                    answerMdLatex = source.answer,
-                    explanationMdLatex = source.explanation,
+                    answerMdLatex = updated.answer,
+                    explanationMdLatex = updated.explanation,
                 )
             } catch (error: Exception) {
                 mainHandler.post {

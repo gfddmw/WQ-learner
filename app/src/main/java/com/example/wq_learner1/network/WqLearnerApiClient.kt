@@ -476,7 +476,43 @@ private fun String.jsonEscape(): String {
 }
 
 private fun String.jsonUnescape(): String {
-    return replace("\\\"", "\"").replace("\\\\", "\\")
+    val result = StringBuilder(length)
+    var index = 0
+    while (index < length) {
+        val char = this[index]
+        if (char != '\\' || index == lastIndex) {
+            result.append(char)
+            index += 1
+            continue
+        }
+
+        when (val escaped = this[index + 1]) {
+            '"' -> result.append('"')
+            '\\' -> result.append('\\')
+            '/' -> result.append('/')
+            'b' -> result.append('\b')
+            'f' -> result.append('\u000C')
+            'n' -> result.append('\n')
+            'r' -> result.append('\r')
+            't' -> result.append('\t')
+            'u' -> {
+                val hexStart = index + 2
+                val hexEnd = hexStart + 4
+                if (hexEnd <= length) {
+                    val codePoint = substring(hexStart, hexEnd).toIntOrNull(16)
+                    if (codePoint != null) {
+                        result.append(codePoint.toChar())
+                        index = hexEnd
+                        continue
+                    }
+                }
+                result.append("\\u")
+            }
+            else -> result.append(escaped)
+        }
+        index += 2
+    }
+    return result.toString()
 }
 
 private fun String.urlEncode(): String {

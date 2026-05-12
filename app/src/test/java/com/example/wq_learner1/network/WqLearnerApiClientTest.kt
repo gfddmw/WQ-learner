@@ -127,6 +127,35 @@ class WqLearnerApiClientTest {
     }
 
     @Test
+    fun listQuestionsUnescapesNewlinesAndUnicodeEscapes() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """
+                    [
+                      {
+                        "id":"Q-ESCAPED",
+                        "user_id":"U-1",
+                        "image_url":"oss://wq-learner/q.jpg",
+                        "content_md_latex":"Line one\nLine two: \u6570\u636e",
+                        "subject":"\u6570\u636e\u7ed3\u6784",
+                        "chapter":"Graph",
+                        "status":"draft",
+                        "mastery":"unfamiliar"
+                      }
+                    ]
+                """.trimIndent(),
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        val questions = client.listQuestions("abc123")
+
+        assertEquals("Line one\nLine two: 数据", questions.first().contentMdLatex)
+        assertEquals("数据结构", questions.first().subject)
+    }
+
+    @Test
     fun uploadQuestionSendsMultipartImageAndParsesDraft() {
         val transport = FakeTransport(
             HttpResponse(

@@ -55,4 +55,29 @@ class MistakeQuestionMergeTest {
         assertEquals("新内容", questions.first().content)
         assertEquals("数学", questions.first().subject)
     }
+
+    @Test
+    fun replaceMasteryByIdUpdatesSharedQuestionListInPlace() {
+        val questions = mutableListOf(
+            MistakeQuestion(
+                id = "Q-001",
+                content = "question one",
+                subject = "data structures",
+                chapter = "trees",
+                mastery = "unfamiliar",
+            ),
+            MistakeQuestion(
+                id = "Q-002",
+                content = "question two",
+                subject = "math",
+                chapter = "linear algebra",
+                mastery = "reviewing",
+            ),
+        )
+
+        questions.replaceMasteryById(questionId = "Q-001", mastery = "mastered")
+
+        assertEquals("mastered", questions.first { it.id == "Q-001" }.mastery)
+        assertEquals("reviewing", questions.first { it.id == "Q-002" }.mastery)
+    }
 }
