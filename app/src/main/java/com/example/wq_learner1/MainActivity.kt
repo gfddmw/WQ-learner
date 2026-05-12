@@ -31,7 +31,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -49,8 +48,11 @@ import androidx.compose.ui.unit.dp
 import com.example.wq_learner1.data.CameraCaptureState
 import com.example.wq_learner1.data.ImageSelectionState
 import com.example.wq_learner1.data.MistakeQuestion
+import com.example.wq_learner1.data.QuestionFilters
 import com.example.wq_learner1.data.QuestionBankRepository
 import com.example.wq_learner1.data.QuestionBankResult
+import com.example.wq_learner1.data.filterQuestions
+import com.example.wq_learner1.data.masteryLabel
 import com.example.wq_learner1.data.upsertFirstById
 import com.example.wq_learner1.domain.SubjectClassifier
 import com.example.wq_learner1.network.ApiConfig
@@ -59,9 +61,11 @@ import com.example.wq_learner1.network.ApiVariantQuestion
 import com.example.wq_learner1.network.SessionState
 import com.example.wq_learner1.network.SharedPreferencesSessionStore
 import com.example.wq_learner1.network.WqLearnerApiClient
+import com.example.wq_learner1.ui.components.WqActionRow
 import com.example.wq_learner1.ui.components.WqEmptyState
 import com.example.wq_learner1.ui.components.WqPageHeader
 import com.example.wq_learner1.ui.components.WqScreen
+import com.example.wq_learner1.ui.components.WqStatusPill
 import com.example.wq_learner1.ui.components.WqTaskCard
 import com.example.wq_learner1.ui.theme.WQlearner1Theme
 
@@ -468,19 +472,17 @@ private fun QuestionBankScreen(
     repository: QuestionBankRepository,
 ) {
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
-    var selectedSubject by remember { mutableStateOf("全部") }
+    var selectedSubject by remember { mutableStateOf(QuestionFilters.ALL) }
+    var selectedMastery by remember { mutableStateOf(QuestionFilters.ALL) }
+    var expandedQuestionId by remember { mutableStateOf<String?>(null) }
     var status by remember { mutableStateOf("登录后可从云端刷新错题。") }
-    val subjects = listOf("全部", "数据结构", "计算机组成原理", "操作系统", "计算机网络")
-    val visibleQuestions = if (selectedSubject == "全部") {
-        questions
-    } else {
-        questions.filter { it.subject == selectedSubject }
-    }
+    val visibleQuestions = questions.filterQuestions(selectedSubject, selectedMastery)
 
     fun refreshFromBackend() {
         status = "正在从后端加载题库..."
         Thread {
-            val result = repository.loadQuestions(sessionState, subject = selectedSubject)
+            val subjectQuery = selectedSubject.takeUnless { it == QuestionFilters.ALL }
+            val result = repository.loadQuestions(sessionState, subject = subjectQuery)
             mainHandler.post {
                 when (result) {
                     QuestionBankResult.LoginRequired -> {
@@ -504,14 +506,22 @@ private fun QuestionBankScreen(
             title = "云端错题库",
             subtitle = "登录后可按科目从云端 /questions 读取错题。",
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            subjects.forEach { subject ->
-                TextButton(onClick = { selectedSubject = subject }) {
-                    Text(
-                        text = subject,
-                        fontWeight = if (selectedSubject == subject) FontWeight.Bold else FontWeight.Normal,
-                    )
-                }
+        WqActionRow {
+            QuestionFilters.subjects.forEach { subject ->
+                WqStatusPill(
+                    text = subject,
+                    selected = selectedSubject == subject,
+                    onClick = { selectedSubject = subject },
+                )
+            }
+        }
+        WqActionRow {
+            QuestionFilters.masteryStates.forEach { mastery ->
+                WqStatusPill(
+                    text = if (mastery == QuestionFilters.ALL) QuestionFilters.ALL else masteryLabel(mastery),
+                    selected = selectedMastery == mastery,
+                    onClick = { selectedMastery = mastery },
+                )
             }
         }
         Button(onClick = { refreshFromBackend() }, modifier = Modifier.fillMaxWidth()) {
@@ -523,7 +533,13 @@ private fun QuestionBankScreen(
             style = MaterialTheme.typography.bodyMedium,
         )
         visibleQuestions.forEach { question ->
-            QuestionCard(question)
+            QuestionCard(
+                question = question,
+                expanded = expandedQuestionId == question.id,
+                onToggleExpanded = {
+                    expandedQuestionId = if (expandedQuestionId == question.id) null else question.id
+                },
+            )
         }
         if (visibleQuestions.isEmpty()) {
             WqEmptyState("当前筛选下还没有错题。")
@@ -748,9 +764,19 @@ private fun MeScreen(
 }
 
 @Composable
-private fun QuestionCard(question: MistakeQuestion) {
+private fun QuestionCard(
+    question: MistakeQuestion,
+    expanded: Boolean = true,
+    onToggleExpanded: (() -> Unit)? = null,
+) {
     WqTaskCard(title = "${question.subject} / ${question.chapter}") {
-        QuestionSummary(question)
+        Text(masteryLabel(question.mastery), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+        Text(if (expanded) question.content else question.content.take(96))
+        if (onToggleExpanded != null) {
+            OutlinedButton(onClick = onToggleExpanded) {
+                Text(if (expanded) "收起详情" else "查看详情")
+            }
+        }
     }
 }
 
