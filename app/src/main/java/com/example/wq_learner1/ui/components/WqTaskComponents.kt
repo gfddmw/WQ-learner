@@ -95,7 +95,7 @@ fun WqTaskCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.85f)),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
@@ -179,7 +179,7 @@ fun WqEmptyState(text: String) {
 fun WqStudyHint(text: String) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
     ) {
@@ -224,7 +224,7 @@ fun WqLearningSummary(stats: LearningStats) {
 private fun WqMetricTile(label: String, value: String, modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
     ) {
         Column(
@@ -265,7 +265,7 @@ fun QuestionEditDialog(
                 .fillMaxWidth(0.95f)
                 .wrapContentHeight()
                 .padding(16.dp),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
@@ -369,7 +369,7 @@ fun QuestionEditDialog(
                             onDismiss()
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("保存修改")
                     }

@@ -15,18 +15,23 @@ import androidx.activity.enableEdgeToEdge
 import android.graphics.BitmapFactory
 import android.net.Uri
 import java.io.File
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -35,6 +40,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -73,7 +79,6 @@ import com.example.wq_learner1.network.WqLearnerApiClient
 import com.example.wq_learner1.ui.components.WqActionRow
 import com.example.wq_learner1.ui.components.WqEmptyState
 import androidx.compose.runtime.snapshots.SnapshotStateList
-import androidx.compose.runtime.MutableState
 import com.example.wq_learner1.auth.AliyunPhoneAuthGateway
 import com.example.wq_learner1.auth.PhoneAuthGateway
 import com.example.wq_learner1.ui.components.WqPageHeader
@@ -847,39 +852,307 @@ private fun MeScreen(
         )
     }
 
+    val isLoggedIn = sessionState.isLoggedIn
+    val accountName = sessionState.email ?: "未登录"
+
     WqScreen {
-        WqPageHeader(
-            title = "我的",
-            subtitle = "使用本机号码一键登录后，上传、题库和练习记录会同步到云端。",
-            meta = "ACCOUNT",
+        MeTopBar(isLoggedIn = isLoggedIn)
+        AccountProfileCard(
+            isLoggedIn = isLoggedIn,
+            isLoggingIn = isLoggingIn,
+            accountName = accountName,
+            status = status,
+            onLogin = { loginWithOneClickPhone() },
         )
-        WqTaskCard(title = "本机号码登录", subtitle = "通过阿里云号码认证完成授权取号") {
-            WqActionRow {
-                Button(
-                    onClick = { loginWithOneClickPhone() },
-                    enabled = !isLoggingIn,
+        AccountOverviewPanel(isLoggedIn = isLoggedIn)
+        SettingsSection(
+            isLoggedIn = isLoggedIn,
+            status = status,
+            accountName = accountName,
+            onLogout = {
+                sessionState.clear()
+                onSessionCleared()
+                status = "已退出登录"
+            },
+        )
+    }
+}
+
+@Composable
+private fun MeTopBar(isLoggedIn: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "我的",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Black,
+        )
+        AccountStateBadge(isLoggedIn = isLoggedIn)
+    }
+}
+
+@Composable
+private fun AccountProfileCard(
+    isLoggedIn: Boolean,
+    isLoggingIn: Boolean,
+    accountName: String,
+    status: String,
+    onLogin: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.75f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                UserAvatar(isLoggedIn = isLoggedIn)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
-                    Text(if (isLoggingIn) "登录中..." else "一键登录")
+                    Text(
+                        text = if (isLoggedIn) accountName else "立即登录",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Black,
+                    )
+                    Text(
+                        text = if (isLoggedIn) "云端题库已开启" else "登录后同步题库、上传记录和练习进度",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = status,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                    )
                 }
-                OutlinedButton(
-                    onClick = {
-                        sessionState.clear()
-                        onSessionCleared()
-                        status = "已退出登录"
-                    },
+                Text(
+                    text = "›",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            if (!isLoggedIn) {
+                Button(
+                    onClick = onLogin,
+                    enabled = !isLoggingIn,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
                 ) {
-                    Text("退出")
+                    Text(if (isLoggingIn) "正在登录..." else "本机号码一键登录")
                 }
             }
         }
-        WqTaskCard(
-            title = "账号状态",
-            subtitle = if (sessionState.isLoggedIn) "云端同步可用" else "登录后开启云端题库",
-            accentColor = MaterialTheme.colorScheme.secondary,
+    }
+}
+
+@Composable
+private fun UserAvatar(isLoggedIn: Boolean) {
+    Surface(
+        modifier = Modifier.size(58.dp),
+        shape = CircleShape,
+        color = if (isLoggedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = if (isLoggedIn) "学" else "未",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Black,
+                color = if (isLoggedIn) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AccountOverviewPanel(isLoggedIn: Boolean) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        OverviewTile(
+            title = "题库",
+            value = if (isLoggedIn) "云端" else "本地",
+            modifier = Modifier.weight(1f),
+        )
+        OverviewTile(
+            title = "上传",
+            value = if (isLoggedIn) "同步" else "待登录",
+            modifier = Modifier.weight(1f),
+        )
+        OverviewTile(
+            title = "练习",
+            value = if (isLoggedIn) "记录中" else "本机",
+            modifier = Modifier.weight(1f),
+        )
+    }
+}
+
+@Composable
+private fun OverviewTile(
+    title: String,
+    value: String,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.65f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(status, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(6.dp))
-            Text("账号：${sessionState.email ?: "未登录"}")
+            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+            Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun SettingsSection(
+    isLoggedIn: Boolean,
+    status: String,
+    accountName: String,
+    onLogout: () -> Unit,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)),
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 4.dp),
+        ) {
+            SettingsRow("账", "账号与安全", accountName)
+            SettingsDivider()
+            SettingsRow("云", "云端同步", if (isLoggedIn) "已开启" else "未开启")
+            SettingsDivider()
+            SettingsRow("状", "登录状态", status)
+            SettingsDivider()
+            SettingsRow("帮", "帮助与反馈", "使用问题与建议")
+            if (isLoggedIn) {
+                SettingsDivider()
+                TextButton(
+                    onClick = onLogout,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(8.dp),
+                ) {
+                    Text("退出登录")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsRow(
+    marker: String,
+    title: String,
+    value: String,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Surface(
+            modifier = Modifier.size(34.dp),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text(
+                    text = marker,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+            Text(
+                value,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            text = "›",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun SettingsDivider() {
+    HorizontalDivider(
+        modifier = Modifier.padding(start = 60.dp),
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+    )
+}
+
+@Composable
+private fun AccountStateBadge(isLoggedIn: Boolean) {
+    val badgeColor = if (isLoggedIn) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+    } else {
+        MaterialTheme.colorScheme.error.copy(alpha = 0.10f)
+    }
+    val borderColor = if (isLoggedIn) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+    } else {
+        MaterialTheme.colorScheme.error.copy(alpha = 0.22f)
+    }
+
+    Surface(
+        shape = RoundedCornerShape(999.dp),
+        color = badgeColor,
+        border = BorderStroke(1.dp, borderColor),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .background(
+                        color = if (isLoggedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                        shape = CircleShape,
+                    ),
+            )
+            Text(
+                text = if (isLoggedIn) "已登录" else "未登录",
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
         }
     }
 }
