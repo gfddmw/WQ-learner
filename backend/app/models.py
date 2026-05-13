@@ -9,6 +9,24 @@ class AuthRequest(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    account: str = ""
+
+
+class SmsCodeRequest(BaseModel):
+    phone: str
+
+
+class SmsCodeResponse(BaseModel):
+    sent: bool
+
+
+class SmsLoginRequest(BaseModel):
+    phone: str
+    code: str = Field(min_length=4, max_length=8)
+
+
+class OneClickPhoneLoginRequest(BaseModel):
+    access_token: str = Field(min_length=1)
 
 
 class UserProfile(BaseModel):

@@ -103,6 +103,7 @@ class UrlConnectionTransport(
 data class AuthSession(
     val accessToken: String,
     val tokenType: String,
+    val account: String = "",
 )
 
 data class StoredSession(
@@ -232,6 +233,48 @@ class WqLearnerApiClient(
         )
     }
 
+    fun sendSmsCode(phone: String) {
+        val response = transport.send(
+            HttpRequest(
+                method = "POST",
+                path = "/auth/sms/send",
+                body = smsCodeBody(phone),
+            ),
+        )
+        requireSuccess(response)
+    }
+
+    fun loginWithSmsCode(phone: String, code: String): AuthSession {
+        val response = transport.send(
+            HttpRequest(
+                method = "POST",
+                path = "/auth/sms/login",
+                body = smsLoginBody(phone, code),
+            ),
+        )
+        requireSuccess(response)
+        return AuthSession(
+            accessToken = response.body.jsonValue("access_token"),
+            tokenType = response.body.jsonValue("token_type"),
+        )
+    }
+
+    fun loginWithAliyunPhoneAuthToken(accessToken: String): AuthSession {
+        val response = transport.send(
+            HttpRequest(
+                method = "POST",
+                path = "/auth/phone/one-click-login",
+                body = phoneAuthTokenBody(accessToken),
+            ),
+        )
+        requireSuccess(response)
+        return AuthSession(
+            accessToken = response.body.jsonValue("access_token"),
+            tokenType = response.body.jsonValue("token_type"),
+            account = response.body.jsonValue("account"),
+        )
+    }
+
     override fun listQuestions(token: String, subject: String?, chapter: String?): List<ApiQuestion> {
         val query = buildList {
             if (!subject.isNullOrBlank()) add("subject=${subject.urlEncode()}")
@@ -333,6 +376,18 @@ class WqLearnerApiClient(
 
     private fun authBody(email: String, password: String): String {
         return """{"email":"${email.jsonEscape()}","password":"${password.jsonEscape()}"}"""
+    }
+
+    private fun smsCodeBody(phone: String): String {
+        return """{"phone":"${phone.jsonEscape()}"}"""
+    }
+
+    private fun smsLoginBody(phone: String, code: String): String {
+        return """{"phone":"${phone.jsonEscape()}","code":"${code.jsonEscape()}"}"""
+    }
+
+    private fun phoneAuthTokenBody(accessToken: String): String {
+        return """{"access_token":"${accessToken.jsonEscape()}"}"""
     }
 
     private fun variantPracticeBody(sourceQuestionId: String, topic: String): String {

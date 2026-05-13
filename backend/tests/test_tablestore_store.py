@@ -31,6 +31,24 @@ def test_tablestore_store_registers_logs_in_and_manages_questions():
     assert store.list_questions(user.id, subject="计算机网络") == []
 
 
+def test_tablestore_store_ignores_legacy_draft_rows_without_status():
+    adapter = FakeTableStoreAdapter()
+    store = TableStoreStore(adapter)
+    user = store.register("demo@example.com", "secret123")
+    adapter.put_row(
+        "wq_questions",
+        [("user_id", user.id), ("id", "legacy-draft")],
+        {
+            "image_url": "oss://bucket/legacy.jpg",
+            "content_md_latex": "legacy content",
+            "subject": "Math",
+            "chapter": "Matrix",
+        },
+    )
+
+    assert store.list_questions(user.id) == []
+
+
 def test_tablestore_store_manages_practice_records():
     store = TableStoreStore(FakeTableStoreAdapter())
     user = store.register("demo@example.com", "secret123")

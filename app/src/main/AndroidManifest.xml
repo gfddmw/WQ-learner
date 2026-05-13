@@ -3,6 +3,9 @@
           xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
 
     <application
@@ -26,6 +29,16 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <activity
+                android:name="com.mobile.auth.gatewayauth.LoginAuthActivity"
+                android:configChanges="orientation|keyboardHidden|screenSize"
+                android:exported="false"/>
+        <activity
+                android:name="com.mobile.auth.gatewayauth.activity.AuthWebVeiwActivity"
+                android:exported="false"/>
+        <activity
+                android:name="com.mobile.auth.gatewayauth.activity.PrivacyDialogActivity"
+                android:exported="false"/>
         <provider
                 android:name="androidx.core.content.FileProvider"
                 android:authorities="${applicationId}.fileprovider"

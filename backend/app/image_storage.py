@@ -63,21 +63,25 @@ def create_oss_bucket(bucket: str, endpoint: str) -> Any:
     try:
         import oss2
     except ImportError as error:
-        raise RuntimeError("缺少 oss2 依赖，请先安装 backend/requirements.txt") from error
+        raise RuntimeError("missing oss2 dependency; install backend/requirements.txt") from error
 
-    access_key_id = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_ID") or os.environ.get("OSS_ACCESS_KEY_ID")
-    access_key_secret = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_SECRET") or os.environ.get("OSS_ACCESS_KEY_SECRET")
-    security_token = os.environ.get("ALIBABA_CLOUD_SECURITY_TOKEN") or os.environ.get("OSS_SECURITY_TOKEN")
-
-    if not access_key_id or not access_key_secret:
-        raise RuntimeError("缺少 OSS 访问凭证，请为函数计算绑定 RAM 角色或配置访问密钥环境变量")
-
-    auth = (
-        oss2.StsAuth(access_key_id, access_key_secret, security_token)
-        if security_token
-        else oss2.Auth(access_key_id, access_key_secret)
-    )
+    auth = create_oss_auth(oss2)
     return oss2.Bucket(auth, endpoint, bucket)
+
+
+def create_oss_auth(oss2: Any) -> Any:
+    explicit_access_key_id = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_ID")
+    explicit_access_key_secret = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_SECRET")
+    access_key_id = explicit_access_key_id or os.environ.get("OSS_ACCESS_KEY_ID")
+    access_key_secret = explicit_access_key_secret or os.environ.get("OSS_ACCESS_KEY_SECRET")
+    security_token = ""
+    if not (explicit_access_key_id and explicit_access_key_secret):
+        security_token = os.environ.get("ALIBABA_CLOUD_SECURITY_TOKEN") or os.environ.get("OSS_SECURITY_TOKEN") or ""
+    if not access_key_id or not access_key_secret:
+        raise RuntimeError("missing OSS credentials")
+    if security_token:
+        return oss2.StsAuth(access_key_id, access_key_secret, security_token)
+    return oss2.Auth(access_key_id, access_key_secret)
 
 
 def extension_for_content_type(content_type: str) -> str:

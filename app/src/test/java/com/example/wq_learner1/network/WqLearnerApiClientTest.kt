@@ -26,6 +26,62 @@ class WqLearnerApiClientTest {
     }
 
     @Test
+    fun sendSmsCodePostsPhoneNumber() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """{"sent":true}""",
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        client.sendSmsCode("13800138000")
+
+        assertEquals("POST", transport.lastRequest.method)
+        assertEquals("/auth/sms/send", transport.lastRequest.path)
+        assertTrue(transport.lastRequest.body.contains("13800138000"))
+    }
+
+    @Test
+    fun loginWithSmsCodeReturnsToken() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """{"access_token":"sms-token","token_type":"bearer"}""",
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        val session = client.loginWithSmsCode("13800138000", "123456")
+
+        assertEquals("sms-token", session.accessToken)
+        assertEquals("bearer", session.tokenType)
+        assertEquals("POST", transport.lastRequest.method)
+        assertEquals("/auth/sms/login", transport.lastRequest.path)
+        assertTrue(transport.lastRequest.body.contains("13800138000"))
+        assertTrue(transport.lastRequest.body.contains("123456"))
+    }
+
+    @Test
+    fun loginWithAliyunPhoneAuthTokenReturnsToken() {
+        val transport = FakeTransport(
+            HttpResponse(
+                statusCode = 200,
+                body = """{"access_token":"phone-token","token_type":"bearer"}""",
+            ),
+        )
+        val client = WqLearnerApiClient(transport)
+
+        val session = client.loginWithAliyunPhoneAuthToken("aliyun-sdk-token")
+
+        assertEquals("phone-token", session.accessToken)
+        assertEquals("bearer", session.tokenType)
+        assertEquals("POST", transport.lastRequest.method)
+        assertEquals("/auth/phone/one-click-login", transport.lastRequest.path)
+        assertTrue(transport.lastRequest.body.contains("aliyun-sdk-token"))
+    }
+
+    @Test
     fun listQuestionsSendsBearerTokenAndParsesQuestions() {
         val transport = FakeTransport(
             HttpResponse(

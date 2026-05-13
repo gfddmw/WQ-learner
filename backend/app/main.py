@@ -1,5 +1,6 @@
 from email.parser import BytesParser
 from email.policy import default
+import os
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
 
@@ -7,16 +8,22 @@ from .models import (
     AuthRequest,
     ConfirmQuestionRequest,
     DrawOriginalRequest,
+    OneClickPhoneLoginRequest,
     PracticeResponse,
     QuestionResponse,
     ReviewPracticeRequest,
+    SmsCodeRequest,
+    SmsCodeResponse,
+    SmsLoginRequest,
     TokenResponse,
     UserProfile,
     VariantPracticeRequest,
 )
 from .image_storage import image_storage
 from .ocr import ocr_service
-from .store import QuestionRecord, UserRecord, store
+from .phone_auth import PhoneAuthConfigurationError, PhoneAuthError, phone_auth_service
+from .sms import SmsConfigurationError, SmsSendError, normalize_phone, sms_code_store, sms_service
+from .store import TABLE_USERS, QuestionRecord, UserRecord, store
 from .variant_generator import variant_service
 
 app = FastAPI(title="WQ Learner API")
@@ -46,6 +53,14 @@ def to_question_response(record: QuestionRecord) -> QuestionResponse:
     )
 
 
+def mask_config_value(value: str) -> str:
+    if not value:
+        return ""
+    if len(value) <= 8:
+        return f"{value[:1]}***{value[-1:]}({len(value)})"
+    return f"{value[:4]}***{value[-4:]}({len(value)})"
+
+
 def current_user(authorization: str = Header(default="")) -> UserRecord:
     prefix = "Bearer "
     if not authorization.startswith(prefix):
@@ -55,6 +70,48 @@ def current_user(authorization: str = Header(default="")) -> UserRecord:
     if user is None:
         raise HTTPException(status_code=401, detail="Invalid bearer token")
     return user
+
+
+@app.get("/debug/config")
+def debug_config() -> dict[str, str | int]:
+    return {
+        "pid": os.getpid(),
+        "access_key_id": mask_config_value(os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_ID", "")),
+        "access_key_secret": mask_config_value(os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "")),
+        "security_token": mask_config_value(os.environ.get("ALIBABA_CLOUD_SECURITY_TOKEN", "")),
+        "ots_access_key_id": mask_config_value(os.environ.get("OTS_ACCESS_KEY_ID", "")),
+        "ots_access_key_secret": mask_config_value(os.environ.get("OTS_ACCESS_KEY_SECRET", "")),
+        "ots_security_token": mask_config_value(os.environ.get("OTS_SECURITY_TOKEN", "")),
+        "tablestore_instance": os.environ.get("WQ_LEARNER_TABLESTORE_INSTANCE", ""),
+        "tablestore_endpoint": os.environ.get("WQ_LEARNER_TABLESTORE_ENDPOINT", ""),
+        "phone_auth_endpoint": os.environ.get("ALIYUN_PHONE_AUTH_ENDPOINT", ""),
+        "oss_bucket": os.environ.get("WQ_LEARNER_OSS_BUCKET", ""),
+    }
+
+
+@app.get("/debug/tablestore")
+def debug_tablestore() -> dict[str, str | int | bool]:
+    adapter = getattr(store, "adapter", None)
+    if adapter is None:
+        return {"ok": False, "store": type(store).__name__, "message": "store has no TableStore adapter"}
+    try:
+        adapter.get_row(TABLE_USERS, [("email", "__debug_not_existing__")])
+        return {"ok": True, "store": type(store).__name__, "message": "TableStore get_row succeeded"}
+    except Exception as error:
+        return {
+            "ok": False,
+            "store": type(store).__name__,
+            "error_type": type(error).__name__,
+            "message": str(error),
+            "access_key_id": mask_config_value(os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_ID", "")),
+            "access_key_secret": mask_config_value(os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_SECRET", "")),
+            "security_token": mask_config_value(os.environ.get("ALIBABA_CLOUD_SECURITY_TOKEN", "")),
+            "ots_access_key_id": mask_config_value(os.environ.get("OTS_ACCESS_KEY_ID", "")),
+            "ots_access_key_secret": mask_config_value(os.environ.get("OTS_ACCESS_KEY_SECRET", "")),
+            "ots_security_token": mask_config_value(os.environ.get("OTS_SECURITY_TOKEN", "")),
+            "tablestore_instance": os.environ.get("WQ_LEARNER_TABLESTORE_INSTANCE", ""),
+            "tablestore_endpoint": os.environ.get("WQ_LEARNER_TABLESTORE_ENDPOINT", ""),
+        }
 
 
 @app.post("/auth/register", response_model=UserProfile)
@@ -69,6 +126,46 @@ def login(request: AuthRequest) -> TokenResponse:
     if token is None:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     return TokenResponse(access_token=token)
+
+
+@app.post("/auth/sms/send", response_model=SmsCodeResponse)
+def send_sms_code(request: SmsCodeRequest) -> SmsCodeResponse:
+    try:
+        phone = normalize_phone(request.phone)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid phone number") from None
+    code = sms_code_store.issue(phone)
+    try:
+        sms_service.send_code(phone, code)
+    except SmsConfigurationError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+    except SmsSendError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
+    return SmsCodeResponse(sent=True)
+
+
+@app.post("/auth/sms/login", response_model=TokenResponse)
+def login_with_sms_code(request: SmsLoginRequest) -> TokenResponse:
+    try:
+        phone = normalize_phone(request.phone)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid phone number") from None
+    if not sms_code_store.verify(phone, request.code):
+        raise HTTPException(status_code=401, detail="Invalid or expired code")
+    token = store.login_or_register_phone(phone)
+    return TokenResponse(access_token=token)
+
+
+@app.post("/auth/phone/one-click-login", response_model=TokenResponse)
+def login_with_one_click_phone(request: OneClickPhoneLoginRequest) -> TokenResponse:
+    try:
+        phone = phone_auth_service.mobile_for_access_token(request.access_token)
+    except PhoneAuthConfigurationError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
+    except PhoneAuthError as error:
+        raise HTTPException(status_code=401, detail=str(error)) from error
+    token = store.login_or_register_phone(phone)
+    return TokenResponse(access_token=token, account=phone)
 
 
 @app.get("/me", response_model=UserProfile)
@@ -105,8 +202,6 @@ async def upload_question(
         content_md_latex=ocr_result.content_md_latex,
         subject=ocr_result.subject,
         chapter=ocr_result.chapter,
-        answer_md_latex=ocr_result.answer_md_latex,
-        explanation_md_latex=ocr_result.explanation_md_latex,
     )
     return to_question_response(record)
 

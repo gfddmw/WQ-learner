@@ -25,18 +25,13 @@ class OcrService(Protocol):
 
 class SimulatedOcrService:
     def recognize(self, image_content: bytes, content_type: str, image_url: str) -> OcrResult:
-        recognized = (
-            "二叉树遍历与哈希查找综合题。请分析遍历过程，"
-            "并写出平均时间复杂度 $O(n)$。"
-        )
+        recognized = "Analyze binary tree traversal and hash lookup. Give the average time complexity $O(n)$."
         classification = classify_question(recognized)
         return OcrResult(
             content_md_latex=recognized,
             subject=classification.subject,
             chapter=classification.chapter,
             confidence=classification.confidence,
-            answer_md_latex="平均时间复杂度为 $O(n)$。",
-            explanation_md_latex="二叉树遍历的时间复杂度通常与节点数成正比。",
         )
 
 
@@ -84,19 +79,17 @@ class DashScopeVisionOcrService:
 
 
 OCR_SYSTEM_PROMPT = (
-    "你是 11408 考研错题 OCR 与公式结构化助手。"
-    "请从图片中识别题干、公式、选项，并生成对应的答案和详细解析，输出 Markdown + LaTeX。"
-    "只能返回 JSON，不要返回 Markdown 代码块。"
+    "You are an OCR and classification assistant for 11408 exam mistake questions. "
+    "Only recognize the question text, formulas, options, subject, and chapter from the image. "
+    "Do not generate an answer or explanation. Return JSON only, without Markdown fences."
 )
 
 OCR_USER_PROMPT = (
-    "请识别这张错题图片，返回 JSON："
-    "{\"content_md_latex\":\"Markdown + LaTeX 题干\","
-    "\"subject\":\"数据结构/计算机组成原理/操作系统/计算机网络/待分类\","
-    "\"chapter\":\"章节\","
-    "\"confidence\":1,"
-    "\"answer_md_latex\":\"Markdown + LaTeX 答案\","
-    "\"explanation_md_latex\":\"Markdown + LaTeX 解析\"}"
+    "Recognize this mistake-question image and return JSON with exactly these fields: "
+    '{"content_md_latex":"question stem/options in Markdown + LaTeX",'
+    '"subject":"数据结构/计算机组成原理/操作系统/计算机网络/待分类",'
+    '"chapter":"chapter",'
+    '"confidence":1}'
 )
 
 
@@ -104,7 +97,7 @@ def create_openai_client(api_key: str, base_url: str) -> Any:
     try:
         from openai import OpenAI
     except ImportError as error:
-        raise RuntimeError("缺少 openai 依赖，请先安装 backend/requirements.txt") from error
+        raise RuntimeError("missing openai dependency; install backend/requirements.txt") from error
     return OpenAI(api_key=api_key, base_url=base_url)
 
 
@@ -134,7 +127,7 @@ def create_ocr_service() -> OcrService:
     if provider == "dashscope":
         api_key = os.environ.get("DASHSCOPE_API_KEY", "")
         if not api_key:
-            raise RuntimeError("缺少 DASHSCOPE_API_KEY 环境变量")
+            raise RuntimeError("missing DASHSCOPE_API_KEY environment variable")
         return DashScopeVisionOcrService(
             api_key=api_key,
             model=os.environ.get("WQ_LEARNER_OCR_MODEL", "qwen3-vl-plus"),

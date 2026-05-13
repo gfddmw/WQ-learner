@@ -1,7 +1,7 @@
 from app.ocr import DashScopeVisionOcrService, SimulatedOcrService, create_ocr_service
 
 
-def test_simulated_ocr_returns_markdown_latex_and_classification():
+def test_simulated_ocr_returns_question_text_and_classification_only():
     service = SimulatedOcrService()
 
     result = service.recognize(
@@ -12,16 +12,14 @@ def test_simulated_ocr_returns_markdown_latex_and_classification():
 
     assert result.content_md_latex
     assert "$O(n)$" in result.content_md_latex
-    assert result.subject == "数据结构"
-    assert result.chapter == "树与二叉树"
     assert result.confidence > 0
-    assert result.answer_md_latex
-    assert result.explanation_md_latex
+    assert result.answer_md_latex == ""
+    assert result.explanation_md_latex == ""
 
 
-def test_dashscope_ocr_sends_image_and_parses_json_result():
+def test_dashscope_ocr_sends_image_and_prompts_for_question_only():
     client = FakeOpenAiClient(
-        content='{"content_md_latex":"TCP 拥塞控制公式：$cwnd=2^k$。","subject":"计算机网络","chapter":"传输层","confidence":2}'
+        content='{"content_md_latex":"TCP congestion window formula: $cwnd=2^k$.","subject":"Computer Networks","chapter":"Transport Layer","confidence":2}'
     )
     service = DashScopeVisionOcrService(
         api_key="sk-test",
@@ -36,12 +34,19 @@ def test_dashscope_ocr_sends_image_and_parses_json_result():
         image_url="oss://wq-learner/users/u/questions/q.jpg",
     )
 
-    assert result.content_md_latex == "TCP 拥塞控制公式：$cwnd=2^k$。"
-    assert result.subject == "计算机网络"
-    assert result.chapter == "传输层"
+    assert result.content_md_latex == "TCP congestion window formula: $cwnd=2^k$."
+    assert result.subject == "Computer Networks"
+    assert result.chapter == "Transport Layer"
     assert result.confidence == 2
+    assert result.answer_md_latex == ""
+    assert result.explanation_md_latex == ""
     assert client.calls[0]["model"] == "qwen3-vl-plus"
     user_content = client.calls[0]["messages"][1]["content"]
+    system_prompt = client.calls[0]["messages"][0]["content"]
+    prompt_text = user_content[0]["text"]
+    assert "Do not generate an answer or explanation" in system_prompt
+    assert "answer_md_latex" not in prompt_text
+    assert "explanation_md_latex" not in prompt_text
     assert user_content[0]["type"] == "text"
     assert user_content[1]["type"] == "image_url"
     assert user_content[1]["image_url"]["url"].startswith("data:image/jpeg;base64,")

@@ -54,6 +54,9 @@ class Store(Protocol):
     def login(self, email: str, password: str) -> str | None:
         ...
 
+    def login_or_register_phone(self, phone: str) -> str:
+        ...
+
     def user_for_token(self, token: str) -> UserRecord | None:
         ...
 
@@ -187,6 +190,20 @@ class SQLiteStore:
         if user is None or user.password != password:
             return None
 
+        return self._create_token(user)
+
+    def login_or_register_phone(self, phone: str) -> str:
+        user = self._user_by_email(phone)
+        if user is None:
+            user = UserRecord(id=str(uuid4()), email=phone, password="")
+            with self._connect() as connection:
+                connection.execute(
+                    "INSERT INTO users (id, email, password) VALUES (?, ?, ?)",
+                    (user.id, user.email, user.password),
+                )
+        return self._create_token(user)
+
+    def _create_token(self, user: UserRecord) -> str:
         token = str(uuid4())
         with self._connect() as connection:
             connection.execute(
@@ -471,9 +488,13 @@ class AliyunTableStoreAdapter:
         except ImportError as error:
             raise RuntimeError("缺少 tablestore 依赖，请先安装 backend/requirements.txt") from error
 
-        access_key_id = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_ID") or os.environ.get("OTS_ACCESS_KEY_ID")
-        access_key_secret = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_SECRET") or os.environ.get("OTS_ACCESS_KEY_SECRET")
-        security_token = os.environ.get("ALIBABA_CLOUD_SECURITY_TOKEN") or os.environ.get("OTS_SECURITY_TOKEN")
+        explicit_access_key_id = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_ID")
+        explicit_access_key_secret = os.environ.get("ALIBABA_CLOUD_ACCESS_KEY_SECRET")
+        access_key_id = explicit_access_key_id or os.environ.get("OTS_ACCESS_KEY_ID")
+        access_key_secret = explicit_access_key_secret or os.environ.get("OTS_ACCESS_KEY_SECRET")
+        security_token = ""
+        if not (explicit_access_key_id and explicit_access_key_secret):
+            security_token = os.environ.get("ALIBABA_CLOUD_SECURITY_TOKEN") or os.environ.get("OTS_SECURITY_TOKEN") or ""
         if not access_key_id or not access_key_secret:
             raise RuntimeError("缺少表格存储访问凭证，请为函数计算绑定 RAM 角色或配置访问密钥环境变量")
 
@@ -539,6 +560,20 @@ class TableStoreStore:
         if user is None or user.password != password:
             return None
 
+        return self._create_token(user)
+
+    def login_or_register_phone(self, phone: str) -> str:
+        user = self._user_by_email(phone)
+        if user is None:
+            user = UserRecord(id=str(uuid4()), email=phone, password="")
+            self.adapter.put_row(
+                TABLE_USERS,
+                self._user_pk(user.email),
+                {"id": user.id, "password": user.password},
+            )
+        return self._create_token(user)
+
+    def _create_token(self, user: UserRecord) -> str:
         token = str(uuid4())
         self.adapter.put_row(
             TABLE_TOKENS,
@@ -748,8 +783,8 @@ class TableStoreStore:
             content_md_latex=str(row["content_md_latex"]),
             subject=str(row["subject"]),
             chapter=str(row["chapter"]),
-            status=str(row["status"]),
-            mastery=str(row["mastery"]),
+            status=str(row.get("status") or "draft"),
+            mastery=str(row.get("mastery") or "unfamiliar"),
             answer_md_latex=str(row.get("answer_md_latex") or ""),
             explanation_md_latex=str(row.get("explanation_md_latex") or ""),
         )

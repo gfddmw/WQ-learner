@@ -1,5 +1,8 @@
 package com.example.wq_learner1
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -71,6 +74,8 @@ import com.example.wq_learner1.ui.components.WqActionRow
 import com.example.wq_learner1.ui.components.WqEmptyState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.MutableState
+import com.example.wq_learner1.auth.AliyunPhoneAuthGateway
+import com.example.wq_learner1.auth.PhoneAuthGateway
 import com.example.wq_learner1.ui.components.WqPageHeader
 import com.example.wq_learner1.ui.components.RichQuestionText
 import com.example.wq_learner1.ui.components.WqScreen
@@ -183,6 +188,7 @@ private fun WqLearnerApp() {
     }
     val endpointState = remember { ApiEndpointState() }
     val apiClient = remember(endpointState.baseUrl) { WqLearnerApiClient(endpointState.baseUrl) }
+    val phoneAuthGateway = remember { AliyunPhoneAuthGateway(BuildConfig.ALIYUN_PHONE_AUTH_SECRET) }
     val questionBankRepository = remember(apiClient) { QuestionBankRepository(apiClient) }
     val questions = remember { mutableStateListOf<MistakeQuestion>() }
     val practiceState = remember(apiClient, questions, sessionState) {
@@ -234,6 +240,7 @@ private fun WqLearnerApp() {
                 MainTab.Me -> MeScreen(
                     sessionState = sessionState,
                     apiClient = apiClient,
+                    phoneAuthGateway = phoneAuthGateway,
                     onSessionSaved = {
                         sessionState.snapshot()?.let(sessionStore::save)
                     },
@@ -796,63 +803,63 @@ private fun PracticeScreen(
 private fun MeScreen(
     sessionState: SessionState,
     apiClient: WqLearnerApiClient,
+    phoneAuthGateway: PhoneAuthGateway,
     onSessionSaved: () -> Unit,
     onSessionCleared: () -> Unit,
 ) {
+    val context = LocalContext.current
     val mainHandler = remember { Handler(Looper.getMainLooper()) }
-    var email by remember { mutableStateOf(sessionState.email.orEmpty()) }
-    var password by remember { mutableStateOf("") }
-    var status by remember {
-        mutableStateOf(if (sessionState.isLoggedIn) "已登录" else "未登录")
-    }
+    var isLoggingIn by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf(if (sessionState.isLoggedIn) "已登录" else "未登录") }
 
-    fun loginAfterOptionalRegister(registerFirst: Boolean) {
-        status = if (registerFirst) "正在注册并登录..." else "正在登录..."
-        Thread {
-            try {
-                if (registerFirst) {
-                    apiClient.register(email, password)
-                }
-                val session = apiClient.login(email, password)
-                sessionState.setSession(session, email)
-                onSessionSaved()
+    fun loginWithOneClickPhone() {
+        val activity = context.findActivity()
+        if (activity == null || isLoggingIn) return
+        isLoggingIn = true
+        status = "正在唤起本机号码认证..."
+        phoneAuthGateway.requestLoginToken(
+            activity = activity,
+            onSuccess = { aliyunToken ->
+                mainHandler.post { status = "已授权，正在登录..." }
+                Thread {
+                    try {
+                        val session = apiClient.loginWithAliyunPhoneAuthToken(aliyunToken)
+                        sessionState.setSession(session, session.account.ifBlank { "手机号账号" })
+                        onSessionSaved()
+                        mainHandler.post {
+                            status = "已登录"
+                            isLoggingIn = false
+                        }
+                    } catch (error: Exception) {
+                        mainHandler.post {
+                            status = "登录失败：${error.message}"
+                            isLoggingIn = false
+                        }
+                    }
+                }.start()
+            },
+            onError = { message ->
                 mainHandler.post {
-                    status = "已登录"
+                    status = message.ifBlank { "号码认证失败" }
+                    isLoggingIn = false
                 }
-            } catch (error: Exception) {
-                mainHandler.post {
-                    status = "登录失败：${error.message}"
-                }
-            }
-        }.start()
+            },
+        )
     }
 
     WqScreen {
         WqPageHeader(
             title = "我的",
-            subtitle = "保持登录后，上传、题库和练习记录会同步到云端。",
+            subtitle = "使用本机号码一键登录后，上传、题库和练习记录会同步到云端。",
             meta = "ACCOUNT",
         )
-        WqTaskCard(title = "账号登录", subtitle = "使用同一账号保存你的错题工作台") {
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("邮箱") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("密码") },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(8.dp))
+        WqTaskCard(title = "本机号码登录", subtitle = "通过阿里云号码认证完成授权取号") {
             WqActionRow {
-                Button(onClick = { loginAfterOptionalRegister(registerFirst = false) }) {
-                    Text("登录")
-                }
-                OutlinedButton(onClick = { loginAfterOptionalRegister(registerFirst = true) }) {
-                    Text("注册并登录")
+                Button(
+                    onClick = { loginWithOneClickPhone() },
+                    enabled = !isLoggingIn,
+                ) {
+                    Text(if (isLoggingIn) "登录中..." else "一键登录")
                 }
                 OutlinedButton(
                     onClick = {
@@ -875,6 +882,12 @@ private fun MeScreen(
             Text("账号：${sessionState.email ?: "未登录"}")
         }
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 @Composable
