@@ -12,9 +12,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import java.io.File
+import com.yalantis.ucrop.UCrop
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
@@ -381,11 +383,36 @@ private fun UploadScreen(
         }.start()
     }
 
+    val cropLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val resultUri = UCrop.getOutput(result.data!!)
+            if (resultUri != null) {
+                recognizeSelectedImage(resultUri.toString())
+            }
+        }
+    }
+
+    fun startCrop(sourceUri: Uri) {
+        val destinationUri = Uri.fromFile(File(context.cacheDir, "cropped_${System.currentTimeMillis()}.jpg"))
+        val options = UCrop.Options().apply {
+            setCompressionFormat(Bitmap.CompressFormat.JPEG)
+            setCompressionQuality(80)
+            setFreeStyleCropEnabled(true)
+        }
+        val uCrop = UCrop.of(sourceUri, destinationUri)
+            .withOptions(options)
+            .withAspectRatio(0f, 0f) // 自由比例
+
+        cropLauncher.launch(uCrop.getIntent(context))
+    }
+
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent(),
     ) { uri ->
         if (uri != null) {
-            recognizeSelectedImage(uri.toString())
+            startCrop(uri)
         }
     }
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -395,7 +422,7 @@ private fun UploadScreen(
         cameraState = result.cameraState
         val selectedImageUri = result.imageState?.selectedImageUri
         if (!selectedImageUri.isNullOrBlank()) {
-            recognizeSelectedImage(selectedImageUri)
+            startCrop(Uri.parse(selectedImageUri))
         }
     }
 
