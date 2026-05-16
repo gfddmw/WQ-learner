@@ -386,10 +386,20 @@ private fun UploadScreen(
     val cropLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val resultUri = UCrop.getOutput(result.data!!)
-            if (resultUri != null) {
-                recognizeSelectedImage(resultUri.toString())
+        when (result.resultCode) {
+            Activity.RESULT_OK -> {
+                val data = result.data
+                if (data != null) {
+                    val resultUri = UCrop.getOutput(data)
+                    if (resultUri != null) {
+                        recognizeSelectedImage(resultUri.toString())
+                    }
+                }
+            }
+            UCrop.RESULT_ERROR -> {
+                val data = result.data
+                val cropError = data?.let { UCrop.getError(it) }
+                android.widget.Toast.makeText(context, "裁剪失败: ${cropError?.message ?: "未知错误"}", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -571,8 +581,23 @@ private fun SelectedImagePreview(
     val bitmap = remember(selectedImageUri) {
         selectedImageUri?.let { uriText ->
             runCatching {
-                context.contentResolver.openInputStream(Uri.parse(uriText))?.use { input ->
-                    BitmapFactory.decodeStream(input)
+                val uri = Uri.parse(uriText)
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    // First decode with inJustDecodeBounds=true to check dimensions
+                    val options = BitmapFactory.Options().apply {
+                        inJustDecodeBounds = true
+                    }
+                    BitmapFactory.decodeStream(input, null, options)
+
+                    // Calculate inSampleSize
+                    options.inSampleSize = calculateInSampleSize(options, 512, 512)
+                    options.inJustDecodeBounds = false
+
+                    // Decode bitmap with inSampleSize set
+                    // Must reopen stream because it was consumed
+                    context.contentResolver.openInputStream(uri)?.use { input2 ->
+                        BitmapFactory.decodeStream(input2, null, options)
+                    }
                 }
             }.getOrNull()
         }
@@ -588,6 +613,20 @@ private fun SelectedImagePreview(
     } else {
         Text(fallbackLabel)
     }
+}
+
+private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+    val (height: Int, width: Int) = options.outHeight to options.outWidth
+    var inSampleSize = 1
+
+    if (height > reqHeight || width > reqWidth) {
+        val halfHeight: Int = height / 2
+        val halfWidth: Int = width / 2
+        while (halfHeight / inSampleSize >= reqHeight && halfWidth / inSampleSize >= reqWidth) {
+            inSampleSize *= 2
+        }
+    }
+    return inSampleSize
 }
 
 @Composable
