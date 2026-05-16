@@ -67,7 +67,9 @@ fun compactSubjectLabel(subject: String): String {
         "计算机组成原理" -> "计组"
         "操作系统" -> "操作"
         "计算机网络" -> "网络"
-        "数学" -> "数学"
+        "高等数学" -> "高数"
+        "线性代数" -> "线代"
+        "概率统计" -> "概统"
         else -> subject
     }
 }

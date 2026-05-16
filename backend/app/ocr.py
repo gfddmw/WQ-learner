@@ -87,7 +87,7 @@ OCR_SYSTEM_PROMPT = (
 OCR_USER_PROMPT = (
     "Recognize this mistake-question image and return JSON with exactly these fields: "
     '{"content_md_latex":"question stem/options in Markdown + LaTeX",'
-    '"subject":"数据结构/计算机组成原理/操作系统/计算机网络/待分类",'
+    '"subject":"数据结构/计算机组成原理/操作系统/计算机网络/高等数学/线性代数/概率统计/待分类",'
     '"chapter":"chapter",'
     '"confidence":1}'
 )

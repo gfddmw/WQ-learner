@@ -9,7 +9,9 @@ object QuestionFilters {
         "计算机组成原理",
         "操作系统",
         "计算机网络",
-        "数学",
+        "高等数学",
+        "线性代数",
+        "概率统计",
     )
 
     val masteryStates = listOf(
