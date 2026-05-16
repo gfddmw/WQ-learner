@@ -410,6 +410,22 @@ private fun UploadScreen(
             setCompressionFormat(Bitmap.CompressFormat.JPEG)
             setCompressionQuality(80)
             setFreeStyleCropEnabled(true)
+            
+            // UI customization to fix clickability/visibility issues
+            // Use a consistent color scheme
+            val primaryColor = android.graphics.Color.parseColor("#3F51B5") // Material Indigo
+            val darkColor = android.graphics.Color.parseColor("#303F9F")
+            
+            setToolbarColor(primaryColor)
+            setStatusBarColor(darkColor)
+            setToolbarWidgetColor(android.graphics.Color.WHITE)
+            setToolbarTitle("裁剪并校正")
+            
+            // Active controls color
+            setActiveControlsWidgetColor(primaryColor)
+            
+            // Ensure bottom controls are visible
+            setHideBottomControls(false)
         }
         val uCrop = UCrop.of(sourceUri, destinationUri)
             .withOptions(options)
