@@ -82,12 +82,13 @@ import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material.icons.rounded.Sync
-import androidx.compose.material.icons.rounded.Help
+import androidx.compose.material.icons.automirrored.rounded.Help
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.SignalCellularAlt
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.School
@@ -1043,14 +1044,41 @@ private fun PracticeScreen(
         )
         WqLearningSummary(practiceState.stats)
         WqActionRow {
-            Button(onClick = { practiceState.drawOriginalQuestion(context) }) {
-                Text("抽原题")
+            androidx.compose.material3.Button(
+                onClick = { practiceState.drawOriginalQuestion(context) },
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Rounded.Sync,
+                        contentDescription = "抽原题",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text("抽取原题")
+                }
             }
-            OutlinedButton(onClick = { practiceState.generateVariant(context) }) {
-                Text(if (practiceState.isGenerating) "生成中..." else "变形题")
+            androidx.compose.material3.OutlinedButton(
+                onClick = { practiceState.generateVariant(context) },
+                shape = RoundedCornerShape(12.dp),
+                enabled = !practiceState.isGenerating
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Rounded.CloudUpload,
+                        contentDescription = "变形题",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(if (practiceState.isGenerating) "智能生成中..." else "生成变形题")
+                }
             }
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
         if (current == null) {
             WqEmptyState("题库为空，请先上传。")
         } else if (practiceState.mode == "original") {
@@ -1060,51 +1088,131 @@ private fun PracticeScreen(
                 subtitle = "先回忆解法，再展开答案解析",
             ) {
                 QuestionSummary(current)
+                
+                Spacer(Modifier.height(10.dp))
+                
                 if (!showOriginalAnswer) {
-                    androidx.compose.material3.TextButton(onClick = { showOriginalAnswer = true }) {
-                        Text("查看答案与解析")
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = { showOriginalAnswer = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.Icon(
+                                imageVector = Icons.Rounded.Description,
+                                contentDescription = "查看",
+                                modifier = Modifier.size(16.dp)
+                              )
+                            Text("查看参考答案与详细解析", fontWeight = FontWeight.Bold)
+                        }
                     }
                 } else {
-                    Spacer(Modifier.height(8.dp))
-                    Text("答案", fontWeight = FontWeight.Bold)
-                    RichQuestionText(current.answer.ifBlank { "暂无答案" })
-                    Spacer(Modifier.height(8.dp))
-                    Text("解析", fontWeight = FontWeight.Bold)
-                    RichQuestionText(current.explanation.ifBlank { "暂无解析" })
+                    AnimatedVisibility(
+                        visible = showOriginalAnswer,
+                        enter = expandVertically(),
+                        exit = shrinkVertically()
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text("参考答案", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                    RichQuestionText(current.answer.ifBlank { "暂无参考答案" })
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 4.dp))
+                                    Text("详细解析", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                    RichQuestionText(current.explanation.ifBlank { "暂无解析内容" })
+                                }
+                            }
+                        }
+                    }
                 }
                 Spacer(Modifier.height(12.dp))
                 ReviewButtons(onReview = ::updateCurrentMastery)
             }
         } else {
             var showVariantAnswer by remember(practiceState.variant?.sourceQuestionId) { mutableStateOf(false) }
+            val variant = practiceState.variant
             WqTaskCard(
-                title = practiceState.variant?.title ?: "变形练习",
+                title = variant?.title ?: "变形练习",
                 subtitle = "围绕当前错题生成同知识点练习",
                 accentColor = MaterialTheme.colorScheme.tertiary,
             ) {
-                if (practiceState.variant == null) {
-                    Text(
-                        text = if (practiceState.isGenerating) "正在生成..." else "基于当前题目生成变形题。",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                if (variant == null) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "大模型智能生成变式题中，请稍候...",
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
                 } else {
-                    RichQuestionText(practiceState.variant?.contentMdLatex.orEmpty())
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(modifier = Modifier.padding(12.dp)) {
+                            RichQuestionText(variant.contentMdLatex)
+                        }
+                    }
+                    Spacer(Modifier.height(10.dp))
                     if (!showVariantAnswer) {
-                        Spacer(Modifier.height(8.dp))
-                        androidx.compose.material3.Button(
+                        androidx.compose.material3.OutlinedButton(
                             onClick = { showVariantAnswer = true },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp)
                         ) {
-                            Text("查看变形题答案")
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = Icons.Rounded.Description,
+                                    contentDescription = "查看",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text("查看变形题答案与详细解析", fontWeight = FontWeight.Bold)
+                            }
                         }
                     } else {
-                        Spacer(Modifier.height(8.dp))
-                        Text("答案", fontWeight = FontWeight.Bold)
-                        RichQuestionText(practiceState.variant?.answerMdLatex.orEmpty())
-                        Spacer(Modifier.height(8.dp))
-                        Text("解析", fontWeight = FontWeight.Bold)
-                        RichQuestionText(practiceState.variant?.explanationMdLatex.orEmpty())
+                        AnimatedVisibility(
+                            visible = showVariantAnswer,
+                            enter = expandVertically(),
+                            exit = shrinkVertically()
+                        ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text("参考答案", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                        RichQuestionText(variant.answerMdLatex)
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 4.dp))
+                                        Text("详细解析", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                        RichQuestionText(variant.explanationMdLatex)
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 Spacer(Modifier.height(12.dp))
@@ -1569,15 +1677,77 @@ private fun QuestionSummary(question: MistakeQuestion) {
 
 @Composable
 private fun ReviewButtons(onReview: (String) -> Unit) {
-    WqActionRow {
-        OutlinedButton(onClick = { onReview("unfamiliar") }) {
-            Text("不熟")
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        androidx.compose.material3.OutlinedButton(
+            onClick = { onReview("unfamiliar") },
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.5.dp, ColorUnfamiliar.copy(alpha = 0.8f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = ColorUnfamiliar.copy(alpha = 0.05f),
+                contentColor = ColorUnfamiliar
+            ),
+            modifier = Modifier.weight(1f)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Rounded.Warning,
+                    contentDescription = "不熟",
+                    modifier = Modifier.size(14.dp)
+                )
+                Text("仍不熟", fontWeight = FontWeight.Bold)
+            }
         }
-        OutlinedButton(onClick = { onReview("reviewing") }) {
-            Text("复习")
+        
+        androidx.compose.material3.OutlinedButton(
+            onClick = { onReview("reviewing") },
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.5.dp, ColorReviewing.copy(alpha = 0.8f)),
+            colors = ButtonDefaults.outlinedButtonColors(
+                containerColor = ColorReviewing.copy(alpha = 0.05f),
+                contentColor = ColorReviewing
+            ),
+            modifier = Modifier.weight(1f)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.Help,
+                    contentDescription = "复习",
+                    modifier = Modifier.size(14.dp)
+                )
+                Text("复习中", fontWeight = FontWeight.Bold)
+            }
         }
-        Button(onClick = { onReview("mastered") }) {
-            Text("掌握")
+        
+        androidx.compose.material3.Button(
+            onClick = { onReview("mastered") },
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = ColorMastered,
+                contentColor = Color.White
+            ),
+            modifier = Modifier.weight(1.2f)
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = "掌握",
+                    modifier = Modifier.size(14.dp)
+                )
+                Text("已掌握", fontWeight = FontWeight.Bold)
+            }
         }
     }
 }
