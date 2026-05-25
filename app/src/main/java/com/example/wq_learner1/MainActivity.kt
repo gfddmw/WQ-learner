@@ -84,7 +84,7 @@ import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Help
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.SignalCellularAlt
@@ -1478,34 +1478,70 @@ private fun QuestionCard(
     question: MistakeQuestion,
     onClick: () -> Unit,
 ) {
+    val masteryColor = when (question.mastery) {
+        "mastered" -> ColorMastered
+        "reviewing" -> ColorReviewing
+        else -> ColorUnfamiliar
+    }
+    val masteryBg = masteryColor.copy(alpha = 0.12f)
+    
     WqTaskCard(
-        title = "${question.subject} / ${question.chapter}",
+        title = question.chapter.ifBlank { "未分类章节" },
+        subtitle = "科目：${question.subject}",
         modifier = Modifier.clickable { onClick() },
-        subtitle = masteryLabel(question.mastery),
-        accentColor = when (question.mastery) {
-            "mastered" -> MaterialTheme.colorScheme.secondary
-            "reviewing" -> MaterialTheme.colorScheme.tertiary
-            else -> MaterialTheme.colorScheme.primary
-        },
+        accentColor = masteryColor,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                masteryLabel(question.mastery),
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.bodyMedium
-            )
-            Text(
-                "点击查看详情",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-            )
+            Surface(
+                shape = RoundedCornerShape(99.dp),
+                color = masteryBg,
+                border = BorderStroke(1.dp, masteryColor.copy(alpha = 0.3f))
+            ) {
+                Text(
+                    text = masteryLabel(question.mastery),
+                    color = masteryColor,
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                )
+            }
+            
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "查看修改",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
+                )
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = "查看",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
         }
-        RichQuestionText(renderQuestionContent(question.content).take(128) + if (question.content.length > 128) "..." else "")
+        
+        Spacer(Modifier.height(2.dp))
+        
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(modifier = Modifier.padding(12.dp)) {
+                val previewText = renderQuestionContent(question.content)
+                val truncated = if (previewText.length > 96) previewText.take(96) + "..." else previewText
+                RichQuestionText(truncated)
+            }
+        }
     }
 }
 
