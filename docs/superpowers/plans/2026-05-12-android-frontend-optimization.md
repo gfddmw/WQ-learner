@@ -973,7 +973,7 @@ git commit -m "feat: polish android account page"
 **Files:**
 - Modify: `docs/superpowers/plans/2026-05-11-remaining-features.md`
 
-- [ ] **Step 1: Update progress document**
+- [x] **Step 1: Update progress document**
 
 Add or update checklist lines:
 
@@ -985,13 +985,13 @@ Add or update checklist lines:
 - [x] 我的页隐藏开发痕迹，并支持云端状态检查。
 ```
 
-- [ ] **Step 2: Run all Android unit tests**
+- [x] **Step 2: Run all Android unit tests**
 
 Run: `.\gradlew.bat testDebugUnitTest`
 
 Expected: `BUILD SUCCESSFUL`.
 
-- [ ] **Step 3: Run Android debug build**
+- [x] **Step 3: Run Android debug build**
 
 Run: `.\gradlew.bat assembleDebug`
 
@@ -1003,20 +1003,20 @@ If the local shell still uses Java 11, record this exact limitation in the final
 assembleDebug 未在当前 shell 完成：Android Gradle plugin requires Java 17；当前 JAVA_HOME 指向 Java 11。
 ```
 
-- [ ] **Step 4: Run backend regression tests**
+- [x] **Step 4: Run backend regression tests**
 
 Run: `pytest backend\tests -v`
 
 Expected: all backend tests pass.
 
-- [ ] **Step 5: Commit final documentation**
+- [x] **Step 5: Commit final documentation**
 
 ```powershell
 git add docs/superpowers/plans/2026-05-11-remaining-features.md
 git commit -m "docs: update android frontend progress"
 ```
 
-- [ ] **Step 6: Ask user before pushing**
+- [x] **Step 6: Ask user before pushing**
 
 Report completed features and verification. Ask: `是否现在提交并上传到 GitHub？`
 
