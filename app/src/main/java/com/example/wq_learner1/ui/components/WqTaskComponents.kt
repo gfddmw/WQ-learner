@@ -1,7 +1,9 @@
 package com.example.wq_learner1.ui.components
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,21 +12,31 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Help
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Lightbulb
+import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -37,15 +49,24 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.wq_learner1.data.LearningStats
 import com.example.wq_learner1.data.MistakeQuestion
 import com.example.wq_learner1.data.masteryLabel
 import com.example.wq_learner1.data.renderQuestionContent
+import com.example.wq_learner1.ui.theme.GradientStart
+import com.example.wq_learner1.ui.theme.GradientEnd
+import com.example.wq_learner1.ui.theme.ColorUnfamiliar
+import com.example.wq_learner1.ui.theme.ColorReviewing
+import com.example.wq_learner1.ui.theme.ColorMastered
 
 @Composable
 fun WqScreen(content: @Composable ColumnScope.() -> Unit) {
@@ -53,8 +74,8 @@ fun WqScreen(content: @Composable ColumnScope.() -> Unit) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 18.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+            .padding(horizontal = 20.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
         content = content,
     )
 }
@@ -67,21 +88,47 @@ fun WqPageHeader(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (meta.isNotBlank()) {
-            Text(
-                meta,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.tertiary,
-                fontWeight = FontWeight.Bold,
-            )
+            Surface(
+                shape = RoundedCornerShape(99.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                modifier = Modifier.padding(bottom = 2.dp)
+            ) {
+                Text(
+                    text = meta,
+                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                )
+            }
         }
-        Text(title, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+        Text(
+            text = title, 
+            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+            color = MaterialTheme.colorScheme.onBackground
+        )
         if (subtitle.isNotBlank()) {
             Text(
-                subtitle,
+                text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
             )
         }
+        Box(
+            modifier = Modifier
+                .padding(top = 4.dp)
+                .fillMaxWidth()
+                .height(1.5.dp)
+                .background(
+                    Brush.horizontalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.0f)
+                        )
+                    )
+                )
+        )
     }
 }
 
@@ -93,35 +140,43 @@ fun WqTaskCard(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface
+    val borderAlpha = if (isDark) 0.15f else 0.65f
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.85f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = cardBg),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderAlpha)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
     ) {
         Column(
-            modifier = Modifier.padding(15.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(
                     modifier = Modifier
-                        .width(4.dp)
+                        .width(4.5.dp)
                         .height(24.dp)
-                        .background(accentColor, RoundedCornerShape(999.dp)),
+                        .background(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(accentColor, accentColor.copy(alpha = 0.5f))
+                            ), 
+                            shape = RoundedCornerShape(99.dp)
+                        ),
                 )
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
                     if (subtitle.isNotBlank()) {
                         Text(
                             subtitle,
                             style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
                         )
                     }
                 }
@@ -133,19 +188,23 @@ fun WqTaskCard(
 
 @Composable
 fun WqStatusPill(text: String, selected: Boolean, onClick: () -> Unit) {
+    val scale by animateFloatAsState(targetValue = if (selected) 1.05f else 1.0f, label = "pill_scale")
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(text) },
-        shape = RoundedCornerShape(999.dp),
+        label = { Text(text, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium) },
+        shape = RoundedCornerShape(99.dp),
+        modifier = Modifier.scale(scale),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = selected,
-            borderColor = MaterialTheme.colorScheme.outline,
-            selectedBorderColor = MaterialTheme.colorScheme.primary,
+            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            selectedBorderColor = Color.Transparent,
+            borderWidth = 1.dp
         ),
         colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
             selectedContainerColor = MaterialTheme.colorScheme.primary,
             selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
         ),
@@ -157,7 +216,7 @@ fun WqStatusPill(text: String, selected: Boolean, onClick: () -> Unit) {
 fun WqActionRow(content: @Composable () -> Unit) {
     FlowRow(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         content()
@@ -167,11 +226,23 @@ fun WqActionRow(content: @Composable () -> Unit) {
 @Composable
 fun WqEmptyState(text: String) {
     WqTaskCard(
-        title = "暂时没有内容",
-        subtitle = "下一步很明确",
+        title = "暂无错题内容",
+        subtitle = "建议开始拍照上传",
         accentColor = MaterialTheme.colorScheme.tertiary,
     ) {
-        Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Info,
+                contentDescription = "提示",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                modifier = Modifier.size(20.dp)
+            )
+            Text(text, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f))
+        }
     }
 }
 
@@ -179,16 +250,27 @@ fun WqEmptyState(text: String) {
 fun WqStudyHint(text: String) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
     ) {
-        Text(
-            text = text,
+        Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.Lightbulb,
+                contentDescription = "提示",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+            )
+        }
     }
 }
 
@@ -199,40 +281,80 @@ fun WqLearningSummary(stats: LearningStats) {
         subtitle = stats.nextStepText,
         accentColor = MaterialTheme.colorScheme.secondary,
     ) {
-        LinearProgressIndicator(
-            progress = { stats.activePercent / 100f },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(RoundedCornerShape(999.dp)),
-            color = MaterialTheme.colorScheme.primary,
-            trackColor = MaterialTheme.colorScheme.surfaceVariant,
-        )
+        val progress = stats.activePercent / 100f
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("错题复盘总进度", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                Text("${stats.activePercent}%", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(10.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress.coerceIn(0f, 1f))
+                        .fillMaxHeight()
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(GradientStart, GradientEnd)
+                            ),
+                            shape = RoundedCornerShape(999.dp)
+                        )
+                )
+            }
+        }
+        Spacer(Modifier.height(4.dp))
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            WqMetricTile("总题", stats.total.toString(), Modifier.weight(1f))
-            WqMetricTile("不熟", stats.unfamiliar.toString(), Modifier.weight(1f))
-            WqMetricTile("复习中", stats.reviewing.toString(), Modifier.weight(1f))
-            WqMetricTile("掌握", stats.mastered.toString(), Modifier.weight(1f))
+            WqMetricTile("总题数", stats.total.toString(), Icons.AutoMirrored.Rounded.MenuBook, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+            WqMetricTile("不熟", stats.unfamiliar.toString(), Icons.Rounded.Warning, ColorUnfamiliar, Modifier.weight(1f))
+            WqMetricTile("复习中", stats.reviewing.toString(), Icons.AutoMirrored.Rounded.Help, ColorReviewing, Modifier.weight(1f))
+            WqMetricTile("已掌握", stats.mastered.toString(), Icons.Rounded.CheckCircle, ColorMastered, Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun WqMetricTile(label: String, value: String, modifier: Modifier = Modifier) {
+private fun WqMetricTile(
+    label: String, 
+    value: String, 
+    icon: ImageVector,
+    iconColor: Color,
+    modifier: Modifier = Modifier
+) {
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.75f),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 9.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = iconColor,
+                    modifier = Modifier.size(13.dp)
+                )
+                Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+            }
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
         }
     }
 }
@@ -262,35 +384,81 @@ fun QuestionEditDialog(
     ) {
         Surface(
             modifier = Modifier
-                .fillMaxWidth(0.95f)
+                .fillMaxWidth(0.92f)
                 .wrapContentHeight()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(20.dp),
             color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
             tonalElevation = 6.dp
         ) {
             Column(
                 modifier = Modifier
-                    .padding(24.dp)
+                    .padding(20.dp)
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(
-                    text = "题目详情",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Edit,
+                            contentDescription = "编辑",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Text(
+                            text = "错题档案校正",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    Text(
+                        text = question.id,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
 
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
 
                 // Mastery Selector
-                Text("掌握状态", style = MaterialTheme.typography.labelLarge)
+                Text("掌握状态", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
                 WqActionRow {
                     listOf("unfamiliar", "reviewing", "mastered").forEach { m ->
-                        WqStatusPill(
-                            text = masteryLabel(m),
-                            selected = mastery == m,
-                            onClick = { mastery = m }
+                        val isSelected = mastery == m
+                        val accentColor = when (m) {
+                            "unfamiliar" -> ColorUnfamiliar
+                            "reviewing" -> ColorReviewing
+                            "mastered" -> ColorMastered
+                            else -> MaterialTheme.colorScheme.primary
+                        }
+                        val pillBg = if (isSelected) accentColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
+                        val pillText = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                        
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { mastery = m },
+                            label = { Text(masteryLabel(m), fontWeight = FontWeight.Bold) },
+                            shape = RoundedCornerShape(99.dp),
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                                selectedBorderColor = Color.Transparent
+                            ),
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                selectedContainerColor = accentColor,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                            )
                         )
                     }
                 }
@@ -298,7 +466,8 @@ fun QuestionEditDialog(
                 OutlinedTextField(
                     value = content,
                     onValueChange = { content = it },
-                    label = { Text("题目内容") },
+                    label = { Text("题目题干") },
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 3
                 )
@@ -308,22 +477,28 @@ fun QuestionEditDialog(
                         value = subject,
                         onValueChange = { subject = it },
                         label = { Text("科目") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = chapter,
                         onValueChange = { chapter = it },
                         label = { Text("章节") },
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.weight(1f)
                     )
                 }
 
                 if (!showAnswer) {
-                    androidx.compose.material3.OutlinedButton(
+                    androidx.compose.material3.Button(
                         onClick = { showAnswer = true },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
                     ) {
-                        Text("查看答案与解析")
+                        Text("查看 / 补充答案解析")
                     }
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -331,20 +506,22 @@ fun QuestionEditDialog(
                             value = answer,
                             onValueChange = { answer = it },
                             label = { Text("答案") },
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 2
                         )
                         OutlinedTextField(
                             value = explanation,
                             onValueChange = { explanation = it },
-                            label = { Text("解析") },
+                            label = { Text("详细解析") },
+                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.fillMaxWidth(),
                             minLines = 3
                         )
                     }
                 }
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -354,7 +531,7 @@ fun QuestionEditDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("取消")
+                        Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     androidx.compose.material3.Button(
                         onClick = {
@@ -368,10 +545,10 @@ fun QuestionEditDialog(
                             ))
                             onDismiss()
                         },
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
+                        modifier = Modifier.weight(1.5f),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("保存修改")
+                        Text("保存归档")
                     }
                 }
             }
@@ -392,7 +569,7 @@ fun RichQuestionText(
             text = annotatedString,
             modifier = modifier,
             style = MaterialTheme.typography.bodyLarge.copy(
-                lineHeight = androidx.compose.ui.unit.TextUnit(24f, androidx.compose.ui.unit.TextUnitType.Sp)
+                lineHeight = 24.sp
             ),
             color = MaterialTheme.colorScheme.onSurface,
         )
