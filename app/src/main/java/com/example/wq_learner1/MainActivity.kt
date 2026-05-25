@@ -57,6 +57,62 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.Collections
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.Description
+import androidx.compose.material.icons.rounded.Category
+import androidx.compose.material.icons.rounded.Bookmarks
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Analytics
+import androidx.compose.material.icons.rounded.CloudUpload
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.Help
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.SignalCellularAlt
+import androidx.compose.material.icons.outlined.CloudUpload
+import androidx.compose.material.icons.outlined.CollectionsBookmark
+import androidx.compose.material.icons.outlined.School
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.filled.CloudUpload
+import androidx.compose.material.icons.filled.CollectionsBookmark
+import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.ui.unit.sp
+import com.example.wq_learner1.ui.theme.GradientStart
+import com.example.wq_learner1.ui.theme.GradientEnd
+import com.example.wq_learner1.ui.theme.GradientBlueStart
+import com.example.wq_learner1.ui.theme.GradientBlueEnd
+import com.example.wq_learner1.ui.theme.GradientOrangeStart
+import com.example.wq_learner1.ui.theme.GradientOrangeEnd
+import com.example.wq_learner1.ui.theme.ColorUnfamiliar
+import com.example.wq_learner1.ui.theme.ColorReviewing
+import com.example.wq_learner1.ui.theme.ColorMastered
+import com.example.wq_learner1.ui.theme.ColorUnfamiliarDark
+import com.example.wq_learner1.ui.theme.ColorReviewingDark
+import com.example.wq_learner1.ui.theme.ColorMasteredDark
+import com.example.wq_learner1.ui.theme.GlowRed
+import com.example.wq_learner1.ui.theme.GlowAmber
+import com.example.wq_learner1.ui.theme.GlowGreen
 import com.example.wq_learner1.ui.components.QuestionEditDialog
 import com.example.wq_learner1.data.CameraCaptureState
 import com.example.wq_learner1.data.ImageSelectionState
@@ -209,10 +265,22 @@ private fun WqLearnerApp() {
                 tonalElevation = 3.dp,
             ) {
                 MainTab.entries.forEach { tab ->
+                    val isSelected = selectedTab == tab
+                    val icon = when (tab) {
+                        MainTab.Upload -> if (isSelected) Icons.Filled.CloudUpload else Icons.Outlined.CloudUpload
+                        MainTab.Bank -> if (isSelected) Icons.Filled.CollectionsBookmark else Icons.Outlined.CollectionsBookmark
+                        MainTab.Practice -> if (isSelected) Icons.Filled.School else Icons.Outlined.School
+                        MainTab.Me -> if (isSelected) Icons.Filled.Person else Icons.Outlined.Person
+                    }
                     NavigationBarItem(
-                        selected = selectedTab == tab,
+                        selected = isSelected,
                         onClick = { selectedTab = tab },
-                        icon = { Text(tab.label.take(1)) },
+                        icon = {
+                            androidx.compose.material3.Icon(
+                                imageVector = icon,
+                                contentDescription = tab.label
+                            )
+                        },
                         label = { Text(tab.label) },
                     )
                 }
@@ -461,45 +529,112 @@ private fun UploadScreen(
         WqStudyHint("建议流程：上传图片 -> 校正 OCR 题干和答案 -> 确认入库。每道题入库后会自动进入题库和练习复盘。")
 
         WqTaskCard(title = "图片草稿", subtitle = "保留原图，方便对照校正") {
+            val strokeColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
+            val hasImage = imageState.hasImage
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(132.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.surfaceVariant,
-                        shape = RoundedCornerShape(8.dp),
-                    ),
+                    .height(160.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
+                    .drawBehind {
+                        if (!hasImage) {
+                            drawRoundRect(
+                                color = strokeColor,
+                                style = Stroke(
+                                    width = 3f,
+                                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f)
+                                ),
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx())
+                            )
+                        }
+                    },
                 contentAlignment = Alignment.Center,
             ) {
-                SelectedImagePreview(
-                    selectedImageUri = imageState.selectedImageUri,
-                    fallbackLabel = if (isUploading) "正在识别..." else "待选择",
-                )
+                if (hasImage) {
+                    SelectedImagePreview(
+                        selectedImageUri = imageState.selectedImageUri,
+                        fallbackLabel = if (isUploading) "正在上传识别..." else "图片解析错误",
+                    )
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                androidx.compose.material3.Icon(
+                                    imageVector = Icons.Rounded.CloudUpload,
+                                    contentDescription = "上传",
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = if (isUploading) "正在云端识别中..." else "待上传错题图片",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "支持拍照或从相册选择",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(10.dp))
             WqActionRow {
-                Button(
+                androidx.compose.material3.Button(
                     onClick = {
                         runCatching {
                             val cameraUri = createCameraImageUri()
                             cameraState = cameraState.prepare(cameraUri.toString())
                             cameraLauncher.launch(cameraUri)
                         }.onFailure { error ->
-                            android.widget.Toast.makeText(context, "启动失败: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
+                            android.widget.Toast.makeText(context, "启动相机失败: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     },
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("拍照")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Rounded.PhotoCamera,
+                            contentDescription = "拍照",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text("拍照拍摄")
+                    }
                 }
-                OutlinedButton(
+                androidx.compose.material3.OutlinedButton(
                     onClick = {
                         galleryLauncher.launch("image/*")
                     },
+                    shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("相册")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Rounded.Collections,
+                            contentDescription = "相册",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text("本地相册")
+                    }
                 }
-                if (imageState.hasImage) {
-                    OutlinedButton(
+                if (hasImage) {
+                    androidx.compose.material3.OutlinedButton(
                         onClick = {
                             imageState = imageState.clear()
                             draftQuestionId = null
@@ -510,16 +645,29 @@ private fun UploadScreen(
                             chapter = "待分类"
                             mastery = "unfamiliar"
                         },
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
-                        Text("清除")
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.Icon(
+                                imageVector = Icons.Rounded.Delete,
+                                contentDescription = "清除",
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text("清除")
+                        }
                     }
                 }
             }
         }
 
         WqTaskCard(
-            title = "识别校正",
-            subtitle = if (draftContent.isBlank()) "等待上传后自动填充" else "确认题干、科目和章节",
+            title = "识别校正工作台",
+            subtitle = if (draftContent.isBlank()) "等待上传识别后自动校正" else "请确认OCR结果、答案及分类",
             accentColor = MaterialTheme.colorScheme.tertiary,
         ) {
             OutlinedTextField(
@@ -530,59 +678,139 @@ private fun UploadScreen(
                     subject = next.subject
                     chapter = next.chapter
                 },
-                label = { Text("题干内容") },
+                label = { Text("题目题干内容 (支持 Markdown + LaTeX)") },
+                shape = RoundedCornerShape(12.dp),
+                leadingIcon = {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Rounded.Description,
+                        contentDescription = "题干",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                    )
+                },
                 minLines = 4,
                 modifier = Modifier.fillMaxWidth(),
             )
-            if (draftContent.isNotBlank()) {
-                Spacer(Modifier.height(8.dp))
-                Text("预览", fontWeight = FontWeight.Bold)
-                RichQuestionText(draftContent)
+            
+            AnimatedVisibility(
+                visible = draftContent.isNotBlank(),
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Spacer(Modifier.height(6.dp))
+                    Text("题干实时预览", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.height(4.dp))
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Box(modifier = Modifier.padding(12.dp)) {
+                            RichQuestionText(draftContent)
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
             }
-            Spacer(Modifier.height(12.dp))
+
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
                     value = subject,
                     onValueChange = { subject = it },
                     label = { Text("科目") },
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Rounded.Category,
+                            contentDescription = "科目",
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        )
+                    },
                     modifier = Modifier.weight(1f),
                 )
                 OutlinedTextField(
                     value = chapter,
                     onValueChange = { chapter = it },
                     label = { Text("章节") },
+                    shape = RoundedCornerShape(12.dp),
+                    leadingIcon = {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Rounded.Bookmarks,
+                            contentDescription = "章节",
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        )
+                    },
                     modifier = Modifier.weight(1f),
                 )
             }
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(6.dp))
             OutlinedTextField(
                 value = draftAnswer,
                 onValueChange = { draftAnswer = it },
-                label = { Text("答案") },
+                label = { Text("参考答案") },
+                shape = RoundedCornerShape(12.dp),
+                leadingIcon = {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = "答案",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                    )
+                },
                 minLines = 2,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(6.dp))
             OutlinedTextField(
                 value = draftExplanation,
                 onValueChange = { draftExplanation = it },
-                label = { Text("解析") },
+                label = { Text("答案解析") },
+                shape = RoundedCornerShape(12.dp),
+                leadingIcon = {
+                    androidx.compose.material3.Icon(
+                        imageVector = Icons.Rounded.Analytics,
+                        contentDescription = "解析",
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                    )
+                },
                 minLines = 3,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(12.dp))
-            Button(
+            Spacer(Modifier.height(10.dp))
+            
+            androidx.compose.material3.Button(
                 onClick = { confirmDraft() },
-                enabled = !isUploading && !isConfirming,
+                enabled = !isUploading && !isConfirming && draftContent.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                contentPadding = PaddingValues()
             ) {
-                Text(
-                    when {
-                        isUploading -> "识别中..."
-                        isConfirming -> "确认中..."
-                        else -> "确认入库"
-                    },
-                )
+                val isButtonEnabled = !isUploading && !isConfirming && draftContent.isNotBlank()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = if (!isButtonEnabled) {
+                                Brush.horizontalGradient(listOf(Color.LightGray.copy(alpha = 0.5f), Color.LightGray.copy(alpha = 0.5f)))
+                            } else {
+                                Brush.horizontalGradient(listOf(GradientStart, GradientEnd))
+                            }
+                        )
+                        .padding(vertical = 14.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = when {
+                            isUploading -> "智能 OCR 识别中..."
+                            isConfirming -> "正在同步入库..."
+                            else -> "确认归档入库"
+                        },
+                        color = if (isButtonEnabled) Color.White else Color.Gray,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                }
             }
         }
     }
