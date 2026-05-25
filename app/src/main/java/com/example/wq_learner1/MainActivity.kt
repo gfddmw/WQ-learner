@@ -56,6 +56,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.clickable
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -1320,14 +1322,19 @@ private fun AccountProfileCard(
     status: String,
     onLogin: () -> Unit,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val cardBg = if (isDark) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface
+    val borderAlpha = if (isDark) 0.15f else 0.65f
+    
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.75f)),
+        shape = RoundedCornerShape(16.dp),
+        color = cardBg,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderAlpha)),
+        shadowElevation = 2.dp
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(
@@ -1341,14 +1348,15 @@ private fun AccountProfileCard(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text(
-                        text = if (isLoggedIn) accountName else "立即登录",
+                        text = if (isLoggedIn) accountName else "未登录账号",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = if (isLoggedIn) "云端题库已开启" else "登录后同步题库、上传记录和练习进度",
+                        text = if (isLoggedIn) "云端同步服务正常运行中" else "登录后同步您的错题本与练习进度",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                     )
                     Text(
                         text = status,
@@ -1357,21 +1365,38 @@ private fun AccountProfileCard(
                         fontWeight = FontWeight.Bold,
                     )
                 }
-                Text(
-                    text = "›",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
 
             if (!isLoggedIn) {
-                Button(
+                androidx.compose.material3.Button(
                     onClick = onLogin,
                     enabled = !isLoggingIn,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                    contentPadding = PaddingValues()
                 ) {
-                    Text(if (isLoggingIn) "正在登录..." else "本机号码一键登录")
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = if (isLoggingIn) {
+                                        listOf(Color.LightGray, Color.LightGray)
+                                    } else {
+                                        listOf(GradientStart, GradientEnd)
+                                    }
+                                )
+                            )
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (isLoggingIn) "正在安全验证登录..." else "本机号码一键登录",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }
@@ -1381,16 +1406,23 @@ private fun AccountProfileCard(
 @Composable
 private fun UserAvatar(isLoggedIn: Boolean) {
     Surface(
-        modifier = Modifier.size(58.dp),
+        modifier = Modifier.size(64.dp),
         shape = CircleShape,
-        color = if (isLoggedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+        color = Color.Transparent,
+        border = BorderStroke(2.dp, Brush.sweepGradient(listOf(GradientStart, GradientEnd, GradientStart)))
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(
-                text = if (isLoggedIn) "学" else "未",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Black,
-                color = if (isLoggedIn) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        Box(
+            modifier = Modifier
+                .padding(3.dp)
+                .clip(CircleShape)
+                .background(if (isLoggedIn) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant),
+            contentAlignment = Alignment.Center
+        ) {
+            androidx.compose.material3.Icon(
+                imageVector = Icons.Rounded.AccountCircle,
+                contentDescription = "Avatar",
+                tint = if (isLoggedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                modifier = Modifier.size(42.dp)
             )
         }
     }
@@ -1403,18 +1435,18 @@ private fun AccountOverviewPanel(isLoggedIn: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         OverviewTile(
-            title = "题库",
-            value = if (isLoggedIn) "云端" else "本地",
+            title = "同步题库",
+            value = if (isLoggedIn) "云端同步" else "离线本地",
             modifier = Modifier.weight(1f),
         )
         OverviewTile(
-            title = "上传",
-            value = if (isLoggedIn) "同步" else "待登录",
+            title = "备份状态",
+            value = if (isLoggedIn) "已备份" else "未备份",
             modifier = Modifier.weight(1f),
         )
         OverviewTile(
-            title = "练习",
-            value = if (isLoggedIn) "记录中" else "本机",
+            title = "记录方式",
+            value = if (isLoggedIn) "多端共享" else "单机保存",
             modifier = Modifier.weight(1f),
         )
     }
@@ -1426,19 +1458,31 @@ private fun OverviewTile(
     value: String,
     modifier: Modifier = Modifier,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val borderAlpha = if (isDark) 0.15f else 0.6f
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.65f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderAlpha)),
+        shadowElevation = 1.dp
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 11.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
-            Text(title, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                text = value,
+                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+            )
         }
     }
 }
@@ -1450,30 +1494,67 @@ private fun SettingsSection(
     accountName: String,
     onLogout: () -> Unit,
 ) {
+    val isDark = isSystemInDarkTheme()
+    val borderAlpha = if (isDark) 0.15f else 0.65f
+    
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.7f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderAlpha)),
+        shadowElevation = 2.dp
     ) {
         Column(
-            modifier = Modifier.padding(vertical = 4.dp),
+            modifier = Modifier.padding(vertical = 6.dp),
         ) {
-            SettingsRow("账", "账号与安全", accountName)
+            SettingsRow(
+                icon = Icons.Rounded.Lock,
+                iconColor = MaterialTheme.colorScheme.primary,
+                title = "账号与安全",
+                value = accountName
+            )
             SettingsDivider()
-            SettingsRow("云", "云端同步", if (isLoggedIn) "已开启" else "未开启")
+            SettingsRow(
+                icon = Icons.Rounded.Sync,
+                iconColor = MaterialTheme.colorScheme.secondary,
+                title = "云端同步",
+                value = if (isLoggedIn) "已开启自动备份" else "未开启（登录后开启）"
+            )
             SettingsDivider()
-            SettingsRow("状", "登录状态", status)
+            SettingsRow(
+                icon = Icons.Rounded.SignalCellularAlt,
+                iconColor = MaterialTheme.colorScheme.tertiary,
+                title = "登录状态",
+                value = status
+            )
             SettingsDivider()
-            SettingsRow("帮", "帮助与反馈", "使用问题与建议")
+            SettingsRow(
+                icon = Icons.AutoMirrored.Rounded.Help,
+                iconColor = MaterialTheme.colorScheme.primary,
+                title = "帮助与反馈",
+                value = "使用问题、功能建议与反馈"
+            )
             if (isLoggedIn) {
                 SettingsDivider()
-                TextButton(
+                androidx.compose.material3.TextButton(
                     onClick = onLogout,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
                 ) {
-                    Text("退出登录")
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Rounded.PowerSettingsNew,
+                            contentDescription = "退出",
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text("退出当前账号", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -1482,28 +1563,29 @@ private fun SettingsSection(
 
 @Composable
 private fun SettingsRow(
-    marker: String,
+    icon: ImageVector,
+    iconColor: Color,
     title: String,
     value: String,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
-            modifier = Modifier.size(34.dp),
+            modifier = Modifier.size(38.dp),
             shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceVariant,
+            color = iconColor.copy(alpha = 0.1f),
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Text(
-                    text = marker,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.Black,
-                    color = MaterialTheme.colorScheme.primary,
+                androidx.compose.material3.Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = iconColor,
+                    modifier = Modifier.size(18.dp)
                 )
             }
         }
@@ -1515,13 +1597,14 @@ private fun SettingsRow(
             Text(
                 value,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             )
         }
-        Text(
-            text = "›",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        androidx.compose.material3.Icon(
+            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+            contentDescription = "详情",
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            modifier = Modifier.size(20.dp)
         )
     }
 }
@@ -1529,8 +1612,8 @@ private fun SettingsRow(
 @Composable
 private fun SettingsDivider() {
     HorizontalDivider(
-        modifier = Modifier.padding(start = 60.dp),
-        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+        modifier = Modifier.padding(start = 68.dp),
+        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f),
     )
 }
 
