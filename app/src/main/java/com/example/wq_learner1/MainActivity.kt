@@ -534,11 +534,13 @@ private fun UploadScreen(
         WqTaskCard(title = "图片草稿", subtitle = "保留原图，方便对照校正") {
             val strokeColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
             val hasImage = imageState.hasImage
+            val previewShape = RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
+            val actionButtonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(160.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(previewShape)
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
                     .drawBehind {
                         if (!hasImage) {
@@ -548,7 +550,7 @@ private fun UploadScreen(
                                     width = 3f,
                                     pathEffect = PathEffect.dashPathEffect(floatArrayOf(15f, 15f), 0f)
                                 ),
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx())
+                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(16.dp.toPx(), 16.dp.toPx())
                             )
                         }
                     },
@@ -604,7 +606,8 @@ private fun UploadScreen(
                             android.widget.Toast.makeText(context, "启动相机失败: ${error.message}", android.widget.Toast.LENGTH_SHORT).show()
                         }
                     },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = actionButtonShape,
+                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -622,7 +625,9 @@ private fun UploadScreen(
                     onClick = {
                         galleryLauncher.launch("image/*")
                     },
-                    shape = RoundedCornerShape(12.dp)
+                    shape = actionButtonShape,
+                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -648,8 +653,8 @@ private fun UploadScreen(
                             chapter = "待分类"
                             mastery = "unfamiliar"
                         },
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f)),
+                        shape = actionButtonShape,
+                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.error),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
                         Row(
@@ -673,6 +678,10 @@ private fun UploadScreen(
             subtitle = if (draftContent.isBlank()) "等待上传识别后自动校正" else "请确认OCR结果、答案及分类",
             accentColor = MaterialTheme.colorScheme.tertiary,
         ) {
+            val textFieldsShape = RoundedCornerShape(8.dp)
+            val previewShape = RoundedCornerShape(topStart = 12.dp, topEnd = 2.dp, bottomEnd = 12.dp, bottomStart = 2.dp)
+            val actionButtonShape = RoundedCornerShape(topStart = 10.dp, topEnd = 2.dp, bottomEnd = 10.dp, bottomStart = 2.dp)
+            
             OutlinedTextField(
                 value = draftContent,
                 onValueChange = {
@@ -682,7 +691,7 @@ private fun UploadScreen(
                     chapter = next.chapter
                 },
                 label = { Text("题目题干内容 (支持 Markdown + LaTeX)") },
-                shape = RoundedCornerShape(12.dp),
+                shape = textFieldsShape,
                 leadingIcon = {
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Rounded.Description,
@@ -705,8 +714,8 @@ private fun UploadScreen(
                     Spacer(Modifier.height(4.dp))
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+                        shape = previewShape,
+                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Box(modifier = Modifier.padding(12.dp)) {
@@ -722,7 +731,7 @@ private fun UploadScreen(
                     value = subject,
                     onValueChange = { subject = it },
                     label = { Text("科目") },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = textFieldsShape,
                     leadingIcon = {
                         androidx.compose.material3.Icon(
                             imageVector = Icons.Rounded.Category,
@@ -736,7 +745,7 @@ private fun UploadScreen(
                     value = chapter,
                     onValueChange = { chapter = it },
                     label = { Text("章节") },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = textFieldsShape,
                     leadingIcon = {
                         androidx.compose.material3.Icon(
                             imageVector = Icons.Rounded.Bookmarks,
@@ -752,7 +761,7 @@ private fun UploadScreen(
                 value = draftAnswer,
                 onValueChange = { draftAnswer = it },
                 label = { Text("参考答案") },
-                shape = RoundedCornerShape(12.dp),
+                shape = textFieldsShape,
                 leadingIcon = {
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Rounded.CheckCircle,
@@ -768,7 +777,7 @@ private fun UploadScreen(
                 value = draftExplanation,
                 onValueChange = { draftExplanation = it },
                 label = { Text("答案解析") },
-                shape = RoundedCornerShape(12.dp),
+                shape = textFieldsShape,
                 leadingIcon = {
                     androidx.compose.material3.Icon(
                         imageVector = Icons.Rounded.Analytics,
@@ -785,35 +794,22 @@ private fun UploadScreen(
                 onClick = { confirmDraft() },
                 enabled = !isUploading && !isConfirming && draftContent.isNotBlank(),
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                contentPadding = PaddingValues()
+                shape = actionButtonShape,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             ) {
-                val isButtonEnabled = !isUploading && !isConfirming && draftContent.isNotBlank()
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(
-                            brush = if (!isButtonEnabled) {
-                                Brush.horizontalGradient(listOf(Color.LightGray.copy(alpha = 0.5f), Color.LightGray.copy(alpha = 0.5f)))
-                            } else {
-                                Brush.horizontalGradient(listOf(GradientStart, GradientEnd))
-                            }
-                        )
-                        .padding(vertical = 14.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = when {
-                            isUploading -> "智能 OCR 识别中..."
-                            isConfirming -> "正在同步入库..."
-                            else -> "确认归档入库"
-                        },
-                        color = if (isButtonEnabled) Color.White else Color.Gray,
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
+                Text(
+                    text = when {
+                        isUploading -> "智能 OCR 识别中..."
+                        isConfirming -> "正在同步入库..."
+                        else -> "确认归档入库"
+                    },
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
             }
         }
     }
@@ -1674,7 +1670,9 @@ private fun QuestionCard(
         "reviewing" -> ColorReviewing
         else -> ColorUnfamiliar
     }
-    val masteryBg = masteryColor.copy(alpha = 0.12f)
+    val masteryBg = masteryColor.copy(alpha = 0.1f)
+    val pillShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+    val boxShape = RoundedCornerShape(topStart = 10.dp, topEnd = 2.dp, bottomEnd = 10.dp, bottomStart = 2.dp)
     
     WqTaskCard(
         title = question.chapter.ifBlank { "未分类章节" },
@@ -1688,9 +1686,9 @@ private fun QuestionCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = RoundedCornerShape(99.dp),
+                shape = pillShape,
                 color = masteryBg,
-                border = BorderStroke(1.dp, masteryColor.copy(alpha = 0.3f))
+                border = BorderStroke(1.2.dp, masteryColor)
             ) {
                 Text(
                     text = masteryLabel(question.mastery),
@@ -1724,7 +1722,8 @@ private fun QuestionCard(
         
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-            shape = RoundedCornerShape(12.dp),
+            shape = boxShape,
+            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
             modifier = Modifier.fillMaxWidth()
         ) {
             Box(modifier = Modifier.padding(12.dp)) {
