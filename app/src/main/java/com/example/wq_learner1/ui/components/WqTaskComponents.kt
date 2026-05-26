@@ -89,46 +89,50 @@ fun WqPageHeader(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (meta.isNotBlank()) {
             Surface(
-                shape = RoundedCornerShape(99.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                shape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
                 modifier = Modifier.padding(bottom = 2.dp)
             ) {
                 Text(
                     text = meta,
-                    style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Black,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                 )
             }
         }
         Text(
             text = title, 
-            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Black),
+            style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onBackground
         )
         if (subtitle.isNotBlank()) {
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             )
         }
-        Box(
-            modifier = Modifier
-                .padding(top = 4.dp)
-                .fillMaxWidth()
-                .height(1.5.dp)
-                .background(
-                    Brush.horizontalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.0f)
-                        )
-                    )
-                )
-        )
+        // 双层学术画线
+        Column(
+            modifier = Modifier.padding(top = 6.dp).fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.5.dp)
+                    .background(MaterialTheme.colorScheme.primary)
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(0.8.dp)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
+            )
+        }
     }
 }
 
@@ -141,47 +145,54 @@ fun WqTaskCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface
-    val borderAlpha = if (isDark) 0.15f else 0.65f
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = cardBg),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderAlpha)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+    val cardBg = MaterialTheme.colorScheme.surface
+    val borderStrokeColor = MaterialTheme.colorScheme.outline
+    val asymmetricShape = RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
+    
+    Box(modifier = modifier.fillMaxWidth()) {
+        val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(top = 4.dp, start = 4.dp)
+                .background(shadowColor, shape = asymmetricShape)
+        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp, end = 4.dp),
+            shape = asymmetricShape,
+            color = cardBg,
+            border = BorderStroke(1.2.dp, borderStrokeColor),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Box(
-                    modifier = Modifier
-                        .width(4.5.dp)
-                        .height(24.dp)
-                        .background(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(accentColor, accentColor.copy(alpha = 0.5f))
-                            ), 
-                            shape = RoundedCornerShape(99.dp)
-                        ),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
-                    if (subtitle.isNotBlank()) {
-                        Text(
-                            subtitle,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
-                        )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(5.dp)
+                            .height(20.dp)
+                            .background(accentColor),
+                    )
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        if (subtitle.isNotBlank()) {
+                            Text(
+                                subtitle,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            )
+                        }
                     }
                 }
+                content()
             }
-            content()
         }
     }
 }
@@ -189,21 +200,22 @@ fun WqTaskCard(
 @Composable
 fun WqStatusPill(text: String, selected: Boolean, onClick: () -> Unit) {
     val scale by animateFloatAsState(targetValue = if (selected) 1.05f else 1.0f, label = "pill_scale")
+    val pillShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
     FilterChip(
         selected = selected,
         onClick = onClick,
-        label = { Text(text, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium) },
-        shape = RoundedCornerShape(99.dp),
+        label = { Text(text, fontWeight = FontWeight.Bold) },
+        shape = pillShape,
         modifier = Modifier.scale(scale),
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = selected,
-            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
-            selectedBorderColor = Color.Transparent,
-            borderWidth = 1.dp
+            borderColor = MaterialTheme.colorScheme.outline,
+            selectedBorderColor = MaterialTheme.colorScheme.outline,
+            borderWidth = 1.2.dp
         ),
         colors = FilterChipDefaults.filterChipColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
             labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
             selectedContainerColor = MaterialTheme.colorScheme.primary,
             selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
@@ -248,27 +260,28 @@ fun WqEmptyState(text: String) {
 
 @Composable
 fun WqStudyHint(text: String) {
+    val hintShape = RoundedCornerShape(topStart = 12.dp, topEnd = 2.dp, bottomEnd = 12.dp, bottomStart = 2.dp)
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+        shape = hintShape,
+        color = if (isSystemInDarkTheme()) Color(0xFF2C281A) else Color(0xFFFFFDEB),
+        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.Top
         ) {
-            Icon(
-                imageVector = Icons.Rounded.Lightbulb,
-                contentDescription = "提示",
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
+            Text(
+                text = "TIP:",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold,
             )
             Text(
                 text = text,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
             )
         }
     }
@@ -282,6 +295,7 @@ fun WqLearningSummary(stats: LearningStats) {
         accentColor = MaterialTheme.colorScheme.secondary,
     ) {
         val progress = stats.activePercent / 100f
+        val progressShape = RoundedCornerShape(4.dp)
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -289,24 +303,24 @@ fun WqLearningSummary(stats: LearningStats) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("错题复盘总进度", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                Text("${stats.activePercent}%", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = "${stats.activePercent}%",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(10.dp)
-                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant, progressShape)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(progress.coerceIn(0f, 1f))
                         .fillMaxHeight()
-                        .background(
-                            brush = Brush.horizontalGradient(
-                                colors = listOf(GradientStart, GradientEnd)
-                            ),
-                            shape = RoundedCornerShape(999.dp)
-                        )
+                        .background(MaterialTheme.colorScheme.primary, progressShape)
                 )
             }
         }
@@ -331,14 +345,15 @@ private fun WqMetricTile(
     iconColor: Color,
     modifier: Modifier = Modifier
 ) {
+    val tileShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)),
+        shape = tileShape,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -350,11 +365,15 @@ private fun WqMetricTile(
                     imageVector = icon,
                     contentDescription = label,
                     tint = iconColor,
-                    modifier = Modifier.size(13.dp)
+                    modifier = Modifier.size(14.dp)
                 )
-                Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Black)
+                Text(value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f))
+            Text(
+                text = label, 
+                style = MaterialTheme.typography.labelSmall, 
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+            )
         }
     }
 }
@@ -378,177 +397,192 @@ fun QuestionEditDialog(
     var explanation by remember(question.id) { mutableStateOf(question.explanation) }
     var showAnswer by remember(question.id) { mutableStateOf(question.answer.isBlank() && question.explanation.isBlank()) }
 
+    val isDark = isSystemInDarkTheme()
+    val asymmetricShape = RoundedCornerShape(topStart = 20.dp, topEnd = 4.dp, bottomEnd = 20.dp, bottomStart = 4.dp)
+    val buttonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
+        Box(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .wrapContentHeight()
-                .padding(16.dp),
-            shape = RoundedCornerShape(20.dp),
-            color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)),
-            tonalElevation = 6.dp
+                .padding(16.dp)
         ) {
-            Column(
+            val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
+            Box(
                 modifier = Modifier
-                    .padding(20.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .matchParentSize()
+                    .padding(top = 6.dp, start = 6.dp)
+                    .background(shadowColor, shape = asymmetricShape)
+            )
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 6.dp, end = 6.dp),
+                shape = asymmetricShape,
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                Column(
+                    modifier = Modifier
+                        .padding(20.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.Edit,
-                            contentDescription = "编辑",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Text(
-                            text = "错题档案校正",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                    Text(
-                        text = question.id,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
-
-                // Mastery Selector
-                Text("掌握状态", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
-                WqActionRow {
-                    listOf("unfamiliar", "reviewing", "mastered").forEach { m ->
-                        val isSelected = mastery == m
-                        val accentColor = when (m) {
-                            "unfamiliar" -> ColorUnfamiliar
-                            "reviewing" -> ColorReviewing
-                            "mastered" -> ColorMastered
-                            else -> MaterialTheme.colorScheme.primary
-                        }
-                        val pillBg = if (isSelected) accentColor else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
-                        val pillText = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
-                        
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { mastery = m },
-                            label = { Text(masteryLabel(m), fontWeight = FontWeight.Bold) },
-                            shape = RoundedCornerShape(99.dp),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = isSelected,
-                                borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
-                                selectedBorderColor = Color.Transparent
-                            ),
-                            colors = FilterChipDefaults.filterChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-                                selectedContainerColor = accentColor,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Edit,
+                                contentDescription = "编辑",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
                             )
+                            Text(
+                                text = "错题档案校正",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Text(
+                            text = question.id,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
                         )
                     }
-                }
 
-                OutlinedTextField(
-                    value = content,
-                    onValueChange = { content = it },
-                    label = { Text("题目题干") },
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.fillMaxWidth(),
-                    minLines = 3
-                )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
 
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // Mastery Selector
+                    Text("掌握状态", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    WqActionRow {
+                        listOf("unfamiliar", "reviewing", "mastered").forEach { m ->
+                            val isSelected = mastery == m
+                            val accentColor = when (m) {
+                                "unfamiliar" -> ColorUnfamiliar
+                                "reviewing" -> ColorReviewing
+                                "mastered" -> ColorMastered
+                                else -> MaterialTheme.colorScheme.primary
+                            }
+                            
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { mastery = m },
+                                label = { Text(masteryLabel(m), fontWeight = FontWeight.Bold) },
+                                shape = buttonShape,
+                                border = FilterChipDefaults.filterChipBorder(
+                                    enabled = true,
+                                    selected = isSelected,
+                                    borderColor = MaterialTheme.colorScheme.outline,
+                                    selectedBorderColor = MaterialTheme.colorScheme.outline,
+                                    borderWidth = 1.2.dp
+                                ),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                                    selectedContainerColor = accentColor,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                )
+                            )
+                        }
+                    }
+
                     OutlinedTextField(
-                        value = subject,
-                        onValueChange = { subject = it },
-                        label = { Text("科目") },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = chapter,
-                        onValueChange = { chapter = it },
-                        label = { Text("章节") },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                if (!showAnswer) {
-                    androidx.compose.material3.Button(
-                        onClick = { showAnswer = true },
+                        value = content,
+                        onValueChange = { content = it },
+                        label = { Text("题目题干") },
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.secondary
-                        )
-                    ) {
-                        Text("查看 / 补充答案解析")
-                    }
-                } else {
-                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        minLines = 3
+                    )
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                         OutlinedTextField(
-                            value = answer,
-                            onValueChange = { answer = it },
-                            label = { Text("答案") },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 2
+                            value = subject,
+                            onValueChange = { subject = it },
+                            label = { Text("科目") },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
-                            value = explanation,
-                            onValueChange = { explanation = it },
-                            label = { Text("详细解析") },
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth(),
-                            minLines = 3
+                            value = chapter,
+                            onValueChange = { chapter = it },
+                            label = { Text("章节") },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
                         )
                     }
-                }
 
-                Spacer(Modifier.height(4.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    androidx.compose.material3.TextButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (!showAnswer) {
+                        androidx.compose.material3.Button(
+                            onClick = { showAnswer = true },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = buttonShape,
+                            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            )
+                        ) {
+                            Text("查看 / 补充答案解析")
+                        }
+                    } else {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = answer,
+                                onValueChange = { answer = it },
+                                label = { Text("答案") },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 2
+                            )
+                            OutlinedTextField(
+                                value = explanation,
+                                onValueChange = { explanation = it },
+                                label = { Text("详细解析") },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth(),
+                                minLines = 3
+                            )
+                        }
                     }
-                    androidx.compose.material3.Button(
-                        onClick = {
-                            onSave(question.copy(
-                                content = content,
-                                subject = subject,
-                                chapter = chapter,
-                                mastery = mastery,
-                                answer = answer,
-                                explanation = explanation,
-                            ))
-                            onDismiss()
-                        },
-                        modifier = Modifier.weight(1.5f),
-                        shape = RoundedCornerShape(12.dp)
+
+                    Spacer(Modifier.height(4.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Text("保存归档")
+                        androidx.compose.material3.TextButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("取消", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        androidx.compose.material3.Button(
+                            onClick = {
+                                onSave(question.copy(
+                                    content = content,
+                                    subject = subject,
+                                    chapter = chapter,
+                                    mastery = mastery,
+                                    answer = answer,
+                                    explanation = explanation,
+                                ))
+                                onDismiss()
+                            },
+                            modifier = Modifier.weight(1.5f),
+                            shape = buttonShape
+                        ) {
+                            Text("保存归档")
+                        }
                     }
                 }
             }
