@@ -1774,19 +1774,10 @@ private fun ReviewButtons(onReview: (String) -> Unit) {
                 containerColor = ColorUnfamiliar.copy(alpha = 0.05f),
                 contentColor = ColorUnfamiliar
             ),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp),
             modifier = Modifier.weight(1f)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Rounded.Warning,
-                    contentDescription = "不熟",
-                    modifier = Modifier.size(14.dp)
-                )
-                Text("仍不熟", fontWeight = FontWeight.Bold)
-            }
+            Text("仍不熟", fontWeight = FontWeight.Bold)
         }
         
         androidx.compose.material3.OutlinedButton(
@@ -1797,19 +1788,10 @@ private fun ReviewButtons(onReview: (String) -> Unit) {
                 containerColor = ColorReviewing.copy(alpha = 0.05f),
                 contentColor = ColorReviewing
             ),
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp),
             modifier = Modifier.weight(1f)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.AutoMirrored.Rounded.Help,
-                    contentDescription = "复习",
-                    modifier = Modifier.size(14.dp)
-                )
-                Text("复习中", fontWeight = FontWeight.Bold)
-            }
+            Text("复习中", fontWeight = FontWeight.Bold)
         }
         
         androidx.compose.material3.Button(
@@ -1820,19 +1802,10 @@ private fun ReviewButtons(onReview: (String) -> Unit) {
                 containerColor = ColorMastered,
                 contentColor = Color.White
             ),
-            modifier = Modifier.weight(1.2f)
+            contentPadding = PaddingValues(horizontal = 4.dp, vertical = 10.dp),
+            modifier = Modifier.weight(1f)
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                androidx.compose.material3.Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "掌握",
-                    modifier = Modifier.size(14.dp)
-                )
-                Text("已掌握", fontWeight = FontWeight.Bold)
-            }
+            Text("已掌握", fontWeight = FontWeight.Bold)
         }
     }
 }
