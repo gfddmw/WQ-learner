@@ -19,14 +19,14 @@ private val DarkColorScheme = darkColorScheme(
     error = ColorUnfamiliarDark,
     background = NightBackground,
     surface = NightSurface,
-    surfaceVariant = Color(0xFF232A31),
-    outline = Color(0xFF334155),
-    onPrimary = Color(0xFF12161A),
-    onSecondary = Color(0xFF12161A),
-    onTertiary = Color(0xFF12161A),
-    onBackground = Color(0xFFECEFF1),
-    onSurface = Color(0xFFECEFF1),
-    onSurfaceVariant = Color(0xFF90A4AE),
+    surfaceVariant = Color(0xFF1F1F1F),
+    outline = Color(0xFF333333),
+    onPrimary = Color(0xFF111111),
+    onSecondary = Color(0xFF111111),
+    onTertiary = Color(0xFF111111),
+    onBackground = Color(0xFFF5F5F5),
+    onSurface = Color(0xFFF5F5F5),
+    onSurfaceVariant = Color(0xFF9CA3AF),
 )
 
 private val LightColorScheme = lightColorScheme(
@@ -36,11 +36,11 @@ private val LightColorScheme = lightColorScheme(
     error = WorkbenchRed,
     background = WorkbenchPaper,
     surface = WorkbenchSurface,
-    surfaceVariant = WorkbenchSurfaceWarm,
+    surfaceVariant = WorkbenchMist,
     outline = WorkbenchLine,
-    onPrimary = WorkbenchSurface,
-    onSecondary = WorkbenchSurface,
-    onTertiary = WorkbenchSurface,
+    onPrimary = Color.White,
+    onSecondary = Color.White,
+    onTertiary = Color.White,
     onBackground = WorkbenchInk,
     onSurface = WorkbenchInk,
     onSurfaceVariant = WorkbenchMuted,
@@ -49,7 +49,6 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun WQlearner1Theme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
     dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
@@ -58,7 +57,6 @@ fun WQlearner1Theme(
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
@@ -66,6 +64,6 @@ fun WQlearner1Theme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
-        content = content
+        content = content,
     )
 }

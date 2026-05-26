@@ -2,25 +2,27 @@ package com.example.wq_learner1.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val WorkbenchBlue = Color(0xFF2B4C7E)
-val WorkbenchBlueDark = Color(0xFF14274E)
-val WorkbenchInk = Color(0xFF161C24)
-val WorkbenchPaper = Color(0xFFFAF9F5) // Ivory paper base
-val WorkbenchSurface = Color(0xFFFFFFFF)
-val WorkbenchSurfaceWarm = Color(0xFFF1F3F5) // Slate light neutral
-val WorkbenchLine = Color(0xFF1E293B) // Dark sharp border color
-val WorkbenchMuted = Color(0xFF64748B)
-val WorkbenchGreen = Color(0xFF124E3F) // Oxford Forest Green (Primary Accent)
-val WorkbenchAmber = Color(0xFFB7791F)
-val WorkbenchRed = Color(0xFFBA1A1A)
-val WorkbenchMist = Color(0xFFE2E8F0)
-val WorkbenchSlate = Color(0xFF334155)
+// 极简现代主色
+val WorkbenchGreen = Color(0xFF124E3F)   // 墨绿主色
+val WorkbenchInk = Color(0xFF111111)     // 近黑文字
+val WorkbenchPaper = Color(0xFFFAF9F5)  // 象牙米白背景
+val WorkbenchSurface = Color(0xFFFFFFFF) // 纯白卡片
+val WorkbenchSurfaceWarm = Color(0xFFF5F5F3) // 微暖浅灰
+val WorkbenchLine = Color(0xFFE5E7EB)   // 轻边框色
+val WorkbenchMuted = Color(0xFF6B7280)   // 中灰副文本
+val WorkbenchBlue = Color(0xFF2563EB)    // 辅助蓝
+val WorkbenchBlueDark = Color(0xFF1D4ED8)
+val WorkbenchAmber = Color(0xFFD97706)
+val WorkbenchRed = Color(0xFFDC2626)
+val WorkbenchMist = Color(0xFFF3F4F6)
+val WorkbenchSlate = Color(0xFF9CA3AF)
 
-val NightBlue = Color(0xFF00B4D8) // Cyan high-energy accent for dark mode
-val NightSurface = Color(0xFF1B2026) // Deep Obsidian
-val NightBackground = Color(0xFF12161A) // Space Charcoal
+// 暗色模式
+val NightBlue = Color(0xFF60A5FA)
+val NightSurface = Color(0xFF1A1A1A)
+val NightBackground = Color(0xFF111111)
 
-// Premium UI Gradient Accent colors (Restrained Editorial tones)
+// 渐变色（保留兼容）
 val GradientStart = Color(0xFF124E3F)
 val GradientEnd = Color(0xFF1E6F5B)
 val GradientBlueStart = Color(0xFF1E293B)
@@ -28,22 +30,21 @@ val GradientBlueEnd = Color(0xFF334155)
 val GradientOrangeStart = Color(0xFFB7791F)
 val GradientOrangeEnd = Color(0xFFD98A29)
 
-// Mastery Visual Colors (Light Theme - Editorial Classic)
-val ColorUnfamiliar = Color(0xFFBA1A1A)
-val ColorReviewing = Color(0xFFB7791F)
-val ColorMastered = Color(0xFF2E6F40)
+// 掌握度色彩
+val ColorUnfamiliar = Color(0xFFDC2626)   // 红
+val ColorReviewing = Color(0xFFD97706)    // 琥珀
+val ColorMastered = Color(0xFF16A34A)     // 绿
 
-// Mastery Visual Colors (Dark Theme)
-val ColorUnfamiliarDark = Color(0xFFFFB4AB)
-val ColorReviewingDark = Color(0xFFFFB866)
-val ColorMasteredDark = Color(0xFF81C784)
+// 暗色掌握度
+val ColorUnfamiliarDark = Color(0xFFFCA5A5)
+val ColorReviewingDark = Color(0xFFFCD34D)
+val ColorMasteredDark = Color(0xFF86EFAC)
 
-// Hard Shadow Colors and Borders
-val HardShadowLight = Color(0xFF1E293B)
-val HardShadowDark = Color(0xFF090D10)
-val GlassBorderLight = Color(0x1A1E293B)
-val GlassBorderDark = Color(0x2B000000)
-val GlowGreen = Color(0x1F2E6F40)
-val GlowAmber = Color(0x1FB7791F)
-val GlowRed = Color(0x1FBA1A1A)
-
+// 阴影与辅助（极简模式下几乎不用）
+val HardShadowLight = Color(0x0A000000)  // 几乎透明
+val HardShadowDark = Color(0x15000000)
+val GlassBorderLight = Color(0x0A000000)
+val GlassBorderDark = Color(0x15000000)
+val GlowGreen = Color(0x0F16A34A)
+val GlowAmber = Color(0x0FD97706)
+val GlowRed = Color(0x0FDC2626)

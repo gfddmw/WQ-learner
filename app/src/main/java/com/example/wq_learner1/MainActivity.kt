@@ -534,8 +534,8 @@ private fun UploadScreen(
         WqTaskCard(title = "图片草稿", subtitle = "保留原图，方便对照校正") {
             val strokeColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)
             val hasImage = imageState.hasImage
-            val previewShape = RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
-            val actionButtonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+            val previewShape = RoundedCornerShape(12.dp)
+            val actionButtonShape = RoundedCornerShape(8.dp)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -607,7 +607,7 @@ private fun UploadScreen(
                         }
                     },
                     shape = actionButtonShape,
-                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline)
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                 ) {
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -626,7 +626,7 @@ private fun UploadScreen(
                         galleryLauncher.launch("image/*")
                     },
                     shape = actionButtonShape,
-                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary)
                 ) {
                     Row(
@@ -654,7 +654,7 @@ private fun UploadScreen(
                             mastery = "unfamiliar"
                         },
                         shape = actionButtonShape,
-                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.error),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
                         Row(
@@ -679,8 +679,8 @@ private fun UploadScreen(
             accentColor = MaterialTheme.colorScheme.tertiary,
         ) {
             val textFieldsShape = RoundedCornerShape(8.dp)
-            val previewShape = RoundedCornerShape(topStart = 12.dp, topEnd = 2.dp, bottomEnd = 12.dp, bottomStart = 2.dp)
-            val actionButtonShape = RoundedCornerShape(topStart = 10.dp, topEnd = 2.dp, bottomEnd = 10.dp, bottomStart = 2.dp)
+            val previewShape = RoundedCornerShape(12.dp)
+            val actionButtonShape = RoundedCornerShape(10.dp)
             
             OutlinedTextField(
                 value = draftContent,
@@ -715,7 +715,7 @@ private fun UploadScreen(
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
                         shape = previewShape,
-                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Box(modifier = Modifier.padding(12.dp)) {
@@ -1041,12 +1041,12 @@ private fun PracticeScreen(
             meta = "PRACTICE",
         )
         WqLearningSummary(practiceState.stats)
-        val buttonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+        val buttonShape = RoundedCornerShape(8.dp)
         WqActionRow {
             androidx.compose.material3.Button(
                 onClick = { practiceState.drawOriginalQuestion(context) },
                 shape = buttonShape,
-                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1063,7 +1063,7 @@ private fun PracticeScreen(
             androidx.compose.material3.OutlinedButton(
                 onClick = { practiceState.generateVariant(context) },
                 shape = buttonShape,
-                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                 enabled = !practiceState.isGenerating
             ) {
                 Row(
@@ -1097,7 +1097,7 @@ private fun PracticeScreen(
                         onClick = { showOriginalAnswer = true },
                         modifier = Modifier.fillMaxWidth(),
                         shape = buttonShape,
-                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline)
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1120,8 +1120,8 @@ private fun PracticeScreen(
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Surface(
                                 color = if (isSystemInDarkTheme()) Color(0xFF2C281A) else Color(0xFFFFFDE2),
-                                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 2.dp, bottomEnd = 12.dp, bottomStart = 2.dp),
-                                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1164,11 +1164,11 @@ private fun PracticeScreen(
                         )
                     }
                 } else {
-                    val variantBoxShape = RoundedCornerShape(topStart = 10.dp, topEnd = 2.dp, bottomEnd = 10.dp, bottomStart = 2.dp)
+                    val variantBoxShape = RoundedCornerShape(10.dp)
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
                         shape = variantBoxShape,
-                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Box(modifier = Modifier.padding(12.dp)) {
@@ -1181,7 +1181,7 @@ private fun PracticeScreen(
                             onClick = { showVariantAnswer = true },
                             modifier = Modifier.fillMaxWidth(),
                             shape = buttonShape,
-                            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline)
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1204,8 +1204,8 @@ private fun PracticeScreen(
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Surface(
                                     color = if (isSystemInDarkTheme()) Color(0xFF2C281A) else Color(0xFFFFFDE2),
-                                    shape = RoundedCornerShape(topStart = 12.dp, topEnd = 2.dp, bottomEnd = 12.dp, bottomStart = 2.dp),
-                                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1311,7 +1311,7 @@ private fun MeTopBar(isLoggedIn: Boolean) {
         Text(
             text = "我的",
             style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Black,
+            fontWeight = FontWeight.SemiBold,
         )
         AccountStateBadge(isLoggedIn = isLoggedIn)
     }
@@ -1325,31 +1325,19 @@ private fun AccountProfileCard(
     status: String,
     onLogin: () -> Unit,
 ) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = MaterialTheme.colorScheme.surface
-    val borderStrokeColor = MaterialTheme.colorScheme.outline
-    val asymmetricShape = RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
-    val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
+    val cardShape = RoundedCornerShape(12.dp)
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .padding(top = 4.dp, start = 4.dp)
-                .background(shadowColor, shape = asymmetricShape)
-        )
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp, end = 4.dp),
-            shape = asymmetricShape,
-            color = cardBg,
-            border = BorderStroke(1.2.dp, borderStrokeColor),
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = cardShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(18.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -1364,7 +1352,7 @@ private fun AccountProfileCard(
                             text = if (isLoggedIn) accountName else "未登录账号",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
@@ -1375,7 +1363,7 @@ private fun AccountProfileCard(
                         Text(
                             text = status,
                             style = MaterialTheme.typography.labelSmall,
-                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                             color = MaterialTheme.colorScheme.primary,
                             fontWeight = FontWeight.Bold,
                         )
@@ -1383,13 +1371,13 @@ private fun AccountProfileCard(
                 }
 
                 if (!isLoggedIn) {
-                    val loginButtonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+                    val loginButtonShape = RoundedCornerShape(8.dp)
                     androidx.compose.material3.Button(
                         onClick = onLogin,
                         enabled = !isLoggingIn,
                         modifier = Modifier.fillMaxWidth(),
                         shape = loginButtonShape,
-                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isLoggingIn) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
                             contentColor = if (isLoggingIn) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
@@ -1406,20 +1394,19 @@ private fun AccountProfileCard(
             }
         }
     }
-}
 
 @Composable
 private fun UserAvatar(isLoggedIn: Boolean) {
-    val avatarShape = RoundedCornerShape(topStart = 14.dp, topEnd = 3.dp, bottomEnd = 14.dp, bottomStart = 3.dp)
+    val avatarShape = CircleShape
     Surface(
-        modifier = Modifier.size(64.dp),
+        modifier = Modifier.size(48.dp),
         shape = avatarShape,
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary)
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Box(
             modifier = Modifier
-                .padding(3.dp)
+                .padding(2.dp)
                 .clip(avatarShape)
                 .background(if (isLoggedIn) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -1464,27 +1451,15 @@ private fun OverviewTile(
     value: String,
     modifier: Modifier = Modifier,
 ) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = MaterialTheme.colorScheme.surface
-    val borderStrokeColor = MaterialTheme.colorScheme.outline
-    val asymmetricShape = RoundedCornerShape(topStart = 10.dp, topEnd = 2.dp, bottomEnd = 10.dp, bottomStart = 2.dp)
-    val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
+    val tileShape = RoundedCornerShape(10.dp)
 
-    Box(modifier = modifier) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .padding(top = 3.dp, start = 3.dp)
-                .background(shadowColor, shape = asymmetricShape)
-        )
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 3.dp, end = 3.dp),
-            shape = asymmetricShape,
-            color = cardBg,
-            border = BorderStroke(1.2.dp, borderStrokeColor),
-        ) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = tileShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 1.dp,
+    ) {
             Column(
                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1494,19 +1469,18 @@ private fun OverviewTile(
                     text = value,
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
                     fontWeight = FontWeight.Bold,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                     color = MaterialTheme.colorScheme.primary
                 )
                 Text(
                     text = title,
                     style = MaterialTheme.typography.labelSmall,
-                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
                 )
             }
         }
     }
-}
 
 @Composable
 private fun SettingsSection(
@@ -1515,30 +1489,18 @@ private fun SettingsSection(
     accountName: String,
     onLogout: () -> Unit,
 ) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = MaterialTheme.colorScheme.surface
-    val borderStrokeColor = MaterialTheme.colorScheme.outline
-    val asymmetricShape = RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
-    val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
+    val cardShape = RoundedCornerShape(12.dp)
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .padding(top = 4.dp, start = 4.dp)
-                .background(shadowColor, shape = asymmetricShape)
-        )
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp, end = 4.dp),
-            shape = asymmetricShape,
-            color = cardBg,
-            border = BorderStroke(1.2.dp, borderStrokeColor),
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = cardShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 6.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(vertical = 6.dp),
-            ) {
                 SettingsRow(
                     icon = Icons.Rounded.Lock,
                     iconColor = MaterialTheme.colorScheme.primary,
@@ -1568,12 +1530,12 @@ private fun SettingsSection(
                 )
                 if (isLoggedIn) {
                     SettingsDivider()
-                    val logoutButtonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+                    val logoutButtonShape = RoundedCornerShape(8.dp)
                     androidx.compose.material3.OutlinedButton(
                         onClick = onLogout,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
                         shape = logoutButtonShape,
-                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.error),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error),
                         colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
                             contentColor = MaterialTheme.colorScheme.error,
                             containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.05f)
@@ -1595,7 +1557,6 @@ private fun SettingsSection(
             }
         }
     }
-}
 
 @Composable
 private fun SettingsRow(
@@ -1604,7 +1565,7 @@ private fun SettingsRow(
     title: String,
     value: String,
 ) {
-    val rowShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+    val rowShape = RoundedCornerShape(8.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1616,7 +1577,7 @@ private fun SettingsRow(
             modifier = Modifier.size(38.dp),
             shape = rowShape,
             color = iconColor.copy(alpha = 0.1f),
-            border = BorderStroke(1.2.dp, iconColor)
+            border = BorderStroke(1.dp, iconColor)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 androidx.compose.material3.Icon(
@@ -1640,7 +1601,7 @@ private fun SettingsRow(
             Text(
                 value,
                 style = MaterialTheme.typography.labelSmall,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             )
         }
@@ -1673,12 +1634,12 @@ private fun AccountStateBadge(isLoggedIn: Boolean) {
     } else {
         MaterialTheme.colorScheme.error
     }
-    val badgeShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+    val badgeShape = RoundedCornerShape(8.dp)
 
     Surface(
         shape = badgeShape,
         color = badgeColor,
-        border = BorderStroke(1.2.dp, borderColor),
+        border = BorderStroke(1.dp, borderColor),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -1696,7 +1657,7 @@ private fun AccountStateBadge(isLoggedIn: Boolean) {
             Text(
                 text = if (isLoggedIn) "云端已同步" else "本地离线",
                 style = MaterialTheme.typography.labelSmall,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif,
                 fontWeight = FontWeight.Bold,
                 color = if (isLoggedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
@@ -1721,8 +1682,8 @@ private fun QuestionCard(
         else -> ColorUnfamiliar
     }
     val masteryBg = masteryColor.copy(alpha = 0.1f)
-    val pillShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
-    val boxShape = RoundedCornerShape(topStart = 10.dp, topEnd = 2.dp, bottomEnd = 10.dp, bottomStart = 2.dp)
+    val pillShape = RoundedCornerShape(8.dp)
+    val boxShape = RoundedCornerShape(10.dp)
     
     WqTaskCard(
         title = question.chapter.ifBlank { "未分类章节" },
@@ -1738,7 +1699,7 @@ private fun QuestionCard(
             Surface(
                 shape = pillShape,
                 color = masteryBg,
-                border = BorderStroke(1.2.dp, masteryColor)
+                border = BorderStroke(1.dp, masteryColor)
             ) {
                 Text(
                     text = masteryLabel(question.mastery),
@@ -1773,7 +1734,7 @@ private fun QuestionCard(
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
             shape = boxShape,
-            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             modifier = Modifier.fillMaxWidth()
         ) {
             Box(modifier = Modifier.padding(12.dp)) {
@@ -1809,7 +1770,7 @@ private fun QuestionSummary(question: MistakeQuestion) {
 
 @Composable
 private fun ReviewButtons(onReview: (String) -> Unit) {
-    val buttonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+    val buttonShape = RoundedCornerShape(8.dp)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1818,7 +1779,7 @@ private fun ReviewButtons(onReview: (String) -> Unit) {
         androidx.compose.material3.OutlinedButton(
             onClick = { onReview("unfamiliar") },
             shape = buttonShape,
-            border = BorderStroke(1.2.dp, ColorUnfamiliar),
+            border = BorderStroke(1.dp, ColorUnfamiliar),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = ColorUnfamiliar.copy(alpha = 0.05f),
                 contentColor = ColorUnfamiliar
@@ -1841,7 +1802,7 @@ private fun ReviewButtons(onReview: (String) -> Unit) {
         androidx.compose.material3.OutlinedButton(
             onClick = { onReview("reviewing") },
             shape = buttonShape,
-            border = BorderStroke(1.2.dp, ColorReviewing),
+            border = BorderStroke(1.dp, ColorReviewing),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = ColorReviewing.copy(alpha = 0.05f),
                 contentColor = ColorReviewing
@@ -1864,7 +1825,7 @@ private fun ReviewButtons(onReview: (String) -> Unit) {
         androidx.compose.material3.Button(
             onClick = { onReview("mastered") },
             shape = buttonShape,
-            border = BorderStroke(1.2.dp, ColorMastered),
+            border = BorderStroke(1.dp, ColorMastered),
             colors = ButtonDefaults.buttonColors(
                 containerColor = ColorMastered,
                 contentColor = Color.White

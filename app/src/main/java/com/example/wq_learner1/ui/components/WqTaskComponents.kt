@@ -87,22 +87,6 @@ fun WqPageHeader(
     meta: String = "",
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        if (meta.isNotBlank()) {
-            Surface(
-                shape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
-                modifier = Modifier.padding(bottom = 2.dp)
-            ) {
-                Text(
-                    text = meta,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                )
-            }
-        }
         Text(
             text = title, 
             style = MaterialTheme.typography.headlineMedium,
@@ -115,24 +99,11 @@ fun WqPageHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             )
         }
-        // 双层学术画线
-        Column(
-            modifier = Modifier.padding(top = 6.dp).fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(2.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(2.5.dp)
-                    .background(MaterialTheme.colorScheme.primary)
-            )
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(0.8.dp)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
-            )
-        }
+        // 简洁分割线
+        Box(
+            modifier = Modifier.padding(top = 8.dp).fillMaxWidth().height(1.dp)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+        )
     }
 }
 
@@ -144,55 +115,40 @@ fun WqTaskCard(
     accentColor: Color = MaterialTheme.colorScheme.primary,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val isDark = isSystemInDarkTheme()
-    val cardBg = MaterialTheme.colorScheme.surface
-    val borderStrokeColor = MaterialTheme.colorScheme.outline
-    val asymmetricShape = RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
-    
-    Box(modifier = modifier.fillMaxWidth()) {
-        val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
-        Box(
-            modifier = Modifier
-                .matchParentSize()
-                .padding(top = 4.dp, start = 4.dp)
-                .background(shadowColor, shape = asymmetricShape)
-        )
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 4.dp, end = 4.dp),
-            shape = asymmetricShape,
-            color = cardBg,
-            border = BorderStroke(1.2.dp, borderStrokeColor),
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(5.dp)
-                            .height(20.dp)
-                            .background(accentColor),
-                    )
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        if (subtitle.isNotBlank()) {
-                            Text(
-                                subtitle,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                            )
-                        }
+                Box(
+                    modifier = Modifier
+                        .width(3.dp)
+                        .height(18.dp)
+                        .background(accentColor, RoundedCornerShape(2.dp)),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                    if (subtitle.isNotBlank()) {
+                        Text(
+                            subtitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
-                content()
             }
+            content()
         }
     }
 }
@@ -200,7 +156,7 @@ fun WqTaskCard(
 @Composable
 fun WqStatusPill(text: String, selected: Boolean, onClick: () -> Unit) {
     val scale by animateFloatAsState(targetValue = if (selected) 1.05f else 1.0f, label = "pill_scale")
-    val pillShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+    val pillShape = RoundedCornerShape(20.dp)
     FilterChip(
         selected = selected,
         onClick = onClick,
@@ -212,7 +168,7 @@ fun WqStatusPill(text: String, selected: Boolean, onClick: () -> Unit) {
             selected = selected,
             borderColor = MaterialTheme.colorScheme.outline,
             selectedBorderColor = MaterialTheme.colorScheme.outline,
-            borderWidth = 1.2.dp
+            borderWidth = 1.dp
         ),
         colors = FilterChipDefaults.filterChipColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -260,30 +216,22 @@ fun WqEmptyState(text: String) {
 
 @Composable
 fun WqStudyHint(text: String) {
-    val hintShape = RoundedCornerShape(topStart = 12.dp, topEnd = 2.dp, bottomEnd = 12.dp, bottomStart = 2.dp)
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = hintShape,
-        color = if (isSystemInDarkTheme()) Color(0xFF2C281A) else Color(0xFFFFFDEB),
-        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)),
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.Top
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.Top
-        ) {
-            Text(
-                text = "TIP:",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Bold,
-            )
-            Text(
-                text = text,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-            )
-        }
+        Text(
+            text = "TIP",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 
@@ -345,12 +293,12 @@ private fun WqMetricTile(
     iconColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val tileShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+    val tileShape = RoundedCornerShape(8.dp)
     Surface(
         modifier = modifier,
         shape = tileShape,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp),
@@ -397,35 +345,23 @@ fun QuestionEditDialog(
     var explanation by remember(question.id) { mutableStateOf(question.explanation) }
     var showAnswer by remember(question.id) { mutableStateOf(question.answer.isBlank() && question.explanation.isBlank()) }
 
-    val isDark = isSystemInDarkTheme()
-    val asymmetricShape = RoundedCornerShape(topStart = 20.dp, topEnd = 4.dp, bottomEnd = 20.dp, bottomStart = 4.dp)
-    val buttonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+    val dialogShape = RoundedCornerShape(16.dp)
+    val buttonShape = RoundedCornerShape(8.dp)
 
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Box(
+        Surface(
             modifier = Modifier
                 .fillMaxWidth(0.92f)
                 .wrapContentHeight()
-                .padding(16.dp)
+                .padding(16.dp),
+            shape = dialogShape,
+            color = MaterialTheme.colorScheme.surface,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            shadowElevation = 2.dp,
         ) {
-            val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
-            Box(
-                modifier = Modifier
-                    .matchParentSize()
-                    .padding(top = 6.dp, start = 6.dp)
-                    .background(shadowColor, shape = asymmetricShape)
-            )
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 6.dp, end = 6.dp),
-                shape = asymmetricShape,
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
-            ) {
                 Column(
                     modifier = Modifier
                         .padding(20.dp)
@@ -485,7 +421,7 @@ fun QuestionEditDialog(
                                     selected = isSelected,
                                     borderColor = MaterialTheme.colorScheme.outline,
                                     selectedBorderColor = MaterialTheme.colorScheme.outline,
-                                    borderWidth = 1.2.dp
+                                    borderWidth = 1.dp
                                 ),
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -588,7 +524,6 @@ fun QuestionEditDialog(
             }
         }
     }
-}
 
 @Composable
 fun RichQuestionText(
