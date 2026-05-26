@@ -72,4 +72,24 @@ class QuestionInteractionStateTest {
     fun drawPracticeQuestionReturnsNullForEmptyList() {
         assertNull(emptyList<MistakeQuestion>().drawPracticeQuestion(previousQuestionId = null))
     }
+
+    @Test
+    fun drawPracticeQuestionDoesNotCycleBetweenOnlyTwoWhenMoreAvailable() {
+        val manyQuestions = listOf(
+            MistakeQuestion("Q-1", "one", "数据结构", "树", "unfamiliar", "", ""),
+            MistakeQuestion("Q-2", "two", "数学", "线性代数/矩阵论", "unfamiliar", "", ""),
+            MistakeQuestion("Q-3", "three", "数学", "概率", "unfamiliar", "", ""),
+            MistakeQuestion("Q-4", "four", "数学", "几何", "unfamiliar", "", ""),
+        )
+        val selectedIds = mutableSetOf<String>()
+        var currentId: String? = null
+        for (i in 1..50) {
+            val selected = manyQuestions.drawPracticeQuestion(previousQuestionId = currentId)
+            selected?.id?.let {
+                selectedIds.add(it)
+                currentId = it
+            }
+        }
+        org.junit.Assert.assertTrue("Should visit more than 2 distinct questions", selectedIds.size > 2)
+    }
 }

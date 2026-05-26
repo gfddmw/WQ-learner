@@ -470,20 +470,25 @@ private fun UploadScreen(
             setCompressionQuality(80)
             setFreeStyleCropEnabled(true)
             
-            // UI customization to fix clickability/visibility issues
-            // Use a consistent color scheme
-            val primaryColor = android.graphics.Color.parseColor("#3F51B5") // Material Indigo
-            val darkColor = android.graphics.Color.parseColor("#303F9F")
+            // WQ Learner v2.0 Design Tokens (Zinc Neutral & Teal Primary)
+            val brandTeal = android.graphics.Color.parseColor("#0F766E")       // Teal-700 主色
+            val brandTealDark = android.graphics.Color.parseColor("#0D5E58")   // Teal-800 状态栏
+            val deepDark = android.graphics.Color.parseColor("#09090B")        // Zinc-950 裁剪区背景，沉浸式编辑
             
-            setToolbarColor(primaryColor)
-            setStatusBarColor(darkColor)
+            setToolbarColor(brandTeal)
+            setStatusBarColor(brandTealDark)
             setToolbarWidgetColor(android.graphics.Color.WHITE)
-            setToolbarTitle("裁剪并校正")
+            setToolbarTitle("裁剪与校正")
             
-            // Active controls color
-            setActiveControlsWidgetColor(primaryColor)
+            // 裁剪网格与编辑背景
+            setRootViewBackgroundColor(deepDark)
+            setCropFrameColor(brandTeal)
+            setCropGridColor(brandTeal)
             
-            // Ensure bottom controls are visible
+            // 活动控制高亮色
+            setActiveControlsWidgetColor(brandTeal)
+            
+            // 确保底部控制栏可见
             setHideBottomControls(false)
         }
         val uCrop = UCrop.of(sourceUri, destinationUri)

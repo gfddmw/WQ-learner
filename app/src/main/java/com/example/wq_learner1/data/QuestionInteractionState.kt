@@ -71,12 +71,14 @@ fun List<MistakeQuestion>.filterQuestions(subject: String, mastery: String): Lis
 
 fun List<MistakeQuestion>.drawPracticeQuestion(previousQuestionId: String?): MistakeQuestion? {
     if (isEmpty()) return null
+    val candidates = filter { it.id != previousQuestionId }
+    val pool = if (candidates.isEmpty()) this else candidates
     val priority = listOf("unfamiliar", "reviewing", "mastered")
-    val ordered = sortedWith(
-        compareBy<MistakeQuestion> { priority.indexOf(it.mastery).takeIf { index -> index >= 0 } ?: priority.size }
-            .thenBy { it.id },
-    )
-    return ordered.firstOrNull { it.id != previousQuestionId } ?: ordered.first()
+    val bestMastery = pool.map { it.mastery }
+        .minByOrNull { priority.indexOf(it).takeIf { idx -> idx >= 0 } ?: priority.size }
+        ?: "unfamiliar"
+    val bestCandidates = pool.filter { it.mastery == bestMastery }
+    return bestCandidates.randomOrNull()
 }
 
 fun List<MistakeQuestion>.updateMastery(questionId: String, mastery: String): List<MistakeQuestion> {
