@@ -62,8 +62,7 @@ import com.example.wq_learner1.data.LearningStats
 import com.example.wq_learner1.data.MistakeQuestion
 import com.example.wq_learner1.data.masteryLabel
 import com.example.wq_learner1.data.renderQuestionContent
-import com.example.wq_learner1.ui.theme.GradientStart
-import com.example.wq_learner1.ui.theme.GradientEnd
+
 import com.example.wq_learner1.ui.theme.ColorUnfamiliar
 import com.example.wq_learner1.ui.theme.ColorReviewing
 import com.example.wq_learner1.ui.theme.ColorMastered
@@ -99,11 +98,7 @@ fun WqPageHeader(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             )
         }
-        // 简洁分割线
-        Box(
-            modifier = Modifier.padding(top = 8.dp).fillMaxWidth().height(1.dp)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-        )
+        Spacer(Modifier.height(4.dp))
     }
 }
 
@@ -119,8 +114,7 @@ fun WqTaskCard(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        shadowElevation = 1.dp,
+        shadowElevation = 0.5.dp,
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -166,9 +160,9 @@ fun WqStatusPill(text: String, selected: Boolean, onClick: () -> Unit) {
         border = FilterChipDefaults.filterChipBorder(
             enabled = true,
             selected = selected,
-            borderColor = MaterialTheme.colorScheme.outline,
-            selectedBorderColor = MaterialTheme.colorScheme.outline,
-            borderWidth = 1.dp
+            borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            selectedBorderColor = Color.Transparent,
+            borderWidth = 0.5.dp
         ),
         colors = FilterChipDefaults.filterChipColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
@@ -293,12 +287,11 @@ private fun WqMetricTile(
     iconColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val tileShape = RoundedCornerShape(8.dp)
+    val tileShape = RoundedCornerShape(10.dp)
     Surface(
         modifier = modifier,
         shape = tileShape,
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp),
@@ -346,7 +339,7 @@ fun QuestionEditDialog(
     var showAnswer by remember(question.id) { mutableStateOf(question.answer.isBlank() && question.explanation.isBlank()) }
 
     val dialogShape = RoundedCornerShape(16.dp)
-    val buttonShape = RoundedCornerShape(8.dp)
+    val buttonShape = RoundedCornerShape(10.dp)
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -359,8 +352,7 @@ fun QuestionEditDialog(
                 .padding(16.dp),
             shape = dialogShape,
             color = MaterialTheme.colorScheme.surface,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-            shadowElevation = 2.dp,
+            shadowElevation = 4.dp,
         ) {
                 Column(
                     modifier = Modifier
@@ -419,9 +411,9 @@ fun QuestionEditDialog(
                                 border = FilterChipDefaults.filterChipBorder(
                                     enabled = true,
                                     selected = isSelected,
-                                    borderColor = MaterialTheme.colorScheme.outline,
-                                    selectedBorderColor = MaterialTheme.colorScheme.outline,
-                                    borderWidth = 1.dp
+                                    borderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                    selectedBorderColor = Color.Transparent,
+                                    borderWidth = 0.5.dp
                                 ),
                                 colors = FilterChipDefaults.filterChipColors(
                                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -436,7 +428,7 @@ fun QuestionEditDialog(
                         value = content,
                         onValueChange = { content = it },
                         label = { Text("题目题干") },
-                        shape = RoundedCornerShape(8.dp),
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 3
                     )
@@ -446,14 +438,14 @@ fun QuestionEditDialog(
                             value = subject,
                             onValueChange = { subject = it },
                             label = { Text("科目") },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         )
                         OutlinedTextField(
                             value = chapter,
                             onValueChange = { chapter = it },
                             label = { Text("章节") },
-                            shape = RoundedCornerShape(8.dp),
+                            shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -475,7 +467,7 @@ fun QuestionEditDialog(
                                 value = answer,
                                 onValueChange = { answer = it },
                                 label = { Text("答案") },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 2
                             )
@@ -483,7 +475,7 @@ fun QuestionEditDialog(
                                 value = explanation,
                                 onValueChange = { explanation = it },
                                 label = { Text("详细解析") },
-                                shape = RoundedCornerShape(8.dp),
+                                shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth(),
                                 minLines = 3
                             )

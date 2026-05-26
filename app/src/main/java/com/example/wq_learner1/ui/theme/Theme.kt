@@ -1,6 +1,5 @@
 package com.example.wq_learner1.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -13,37 +12,41 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
 private val DarkColorScheme = darkColorScheme(
-    primary = NightBlue,
+    primary = NightPrimary,
     secondary = ColorMasteredDark,
     tertiary = ColorReviewingDark,
     error = ColorUnfamiliarDark,
     background = NightBackground,
     surface = NightSurface,
-    surfaceVariant = Color(0xFF1F1F1F),
-    outline = Color(0xFF333333),
-    onPrimary = Color(0xFF111111),
+    surfaceVariant = NightVariant,
+    surfaceContainerHigh = Color(0xFF3F3F46),
+    outline = NightOutline,
+    outlineVariant = Color(0xFF52525B),
+    onPrimary = Color(0xFF042F2E),
     onSecondary = Color(0xFF111111),
     onTertiary = Color(0xFF111111),
-    onBackground = Color(0xFFF5F5F5),
-    onSurface = Color(0xFFF5F5F5),
-    onSurfaceVariant = Color(0xFF9CA3AF),
+    onBackground = Color(0xFFF4F4F5),
+    onSurface = Color(0xFFF4F4F5),
+    onSurfaceVariant = NightMuted,
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = WorkbenchGreen,
-    secondary = ColorMastered,
-    tertiary = WorkbenchBlue,
-    error = WorkbenchRed,
-    background = WorkbenchPaper,
-    surface = WorkbenchSurface,
-    surfaceVariant = WorkbenchMist,
-    outline = WorkbenchLine,
+    primary = PrimaryTeal,
+    secondary = SemanticSuccess,
+    tertiary = SemanticInfo,
+    error = SemanticError,
+    background = NeutralBg,
+    surface = NeutralSurface,
+    surfaceVariant = NeutralVariant,
+    surfaceContainerHigh = Color(0xFFEFEFEF),
+    outline = NeutralOutline,
+    outlineVariant = NeutralDivider,
     onPrimary = Color.White,
     onSecondary = Color.White,
     onTertiary = Color.White,
-    onBackground = WorkbenchInk,
-    onSurface = WorkbenchInk,
-    onSurfaceVariant = WorkbenchMuted,
+    onBackground = NeutralInk,
+    onSurface = NeutralInk,
+    onSurfaceVariant = NeutralMuted,
 )
 
 @Composable
