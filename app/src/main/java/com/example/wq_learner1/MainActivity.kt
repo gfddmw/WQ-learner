@@ -1041,10 +1041,12 @@ private fun PracticeScreen(
             meta = "PRACTICE",
         )
         WqLearningSummary(practiceState.stats)
+        val buttonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
         WqActionRow {
             androidx.compose.material3.Button(
                 onClick = { practiceState.drawOriginalQuestion(context) },
-                shape = RoundedCornerShape(12.dp)
+                shape = buttonShape,
+                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline)
             ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1060,7 +1062,8 @@ private fun PracticeScreen(
             }
             androidx.compose.material3.OutlinedButton(
                 onClick = { practiceState.generateVariant(context) },
-                shape = RoundedCornerShape(12.dp),
+                shape = buttonShape,
+                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
                 enabled = !practiceState.isGenerating
             ) {
                 Row(
@@ -1093,7 +1096,8 @@ private fun PracticeScreen(
                     androidx.compose.material3.OutlinedButton(
                         onClick = { showOriginalAnswer = true },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+                        shape = buttonShape,
+                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline)
                     ) {
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1115,16 +1119,16 @@ private fun PracticeScreen(
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                                shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                color = if (isSystemInDarkTheme()) Color(0xFF2C281A) else Color(0xFFFFFDE2),
+                                shape = RoundedCornerShape(topStart = 12.dp, topEnd = 2.dp, bottomEnd = 12.dp, bottomStart = 2.dp),
+                                border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text("参考答案", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                    Text("参考答案", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                                     RichQuestionText(current.answer.ifBlank { "暂无参考答案" })
                                     HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 4.dp))
-                                    Text("详细解析", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                    Text("详细解析", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                                     RichQuestionText(current.explanation.ifBlank { "暂无解析内容" })
                                 }
                             }
@@ -1160,9 +1164,11 @@ private fun PracticeScreen(
                         )
                     }
                 } else {
+                    val variantBoxShape = RoundedCornerShape(topStart = 10.dp, topEnd = 2.dp, bottomEnd = 10.dp, bottomStart = 2.dp)
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                        shape = RoundedCornerShape(12.dp),
+                        shape = variantBoxShape,
+                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Box(modifier = Modifier.padding(12.dp)) {
@@ -1174,7 +1180,8 @@ private fun PracticeScreen(
                         androidx.compose.material3.OutlinedButton(
                             onClick = { showVariantAnswer = true },
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = buttonShape,
+                            border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline)
                         ) {
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1196,16 +1203,16 @@ private fun PracticeScreen(
                         ) {
                             Column(modifier = Modifier.fillMaxWidth()) {
                                 Surface(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                                    shape = RoundedCornerShape(12.dp),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                                    color = if (isSystemInDarkTheme()) Color(0xFF2C281A) else Color(0xFFFFFDE2),
+                                    shape = RoundedCornerShape(topStart = 12.dp, topEnd = 2.dp, bottomEnd = 12.dp, bottomStart = 2.dp),
+                                    border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Text("参考答案", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                        Text("参考答案", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                                         RichQuestionText(variant.answerMdLatex)
                                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f), modifier = Modifier.padding(vertical = 4.dp))
-                                        Text("详细解析", fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
+                                        Text("详细解析", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.labelLarge)
                                         RichQuestionText(variant.explanationMdLatex)
                                     }
                                 }
@@ -1319,78 +1326,80 @@ private fun AccountProfileCard(
     onLogin: () -> Unit,
 ) {
     val isDark = isSystemInDarkTheme()
-    val cardBg = if (isDark) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.surface
-    val borderAlpha = if (isDark) 0.15f else 0.65f
-    
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = cardBg,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderAlpha)),
-        shadowElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                UserAvatar(isLoggedIn = isLoggedIn)
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
-                ) {
-                    Text(
-                        text = if (isLoggedIn) accountName else "未登录账号",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Black,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = if (isLoggedIn) "云端同步服务正常运行中" else "登录后同步您的错题本与练习进度",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
-                    )
-                    Text(
-                        text = status,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                    )
-                }
-            }
+    val cardBg = MaterialTheme.colorScheme.surface
+    val borderStrokeColor = MaterialTheme.colorScheme.outline
+    val asymmetricShape = RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
+    val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
 
-            if (!isLoggedIn) {
-                androidx.compose.material3.Button(
-                    onClick = onLogin,
-                    enabled = !isLoggingIn,
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(top = 4.dp, start = 4.dp)
+                .background(shadowColor, shape = asymmetricShape)
+        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp, end = 4.dp),
+            shape = asymmetricShape,
+            color = cardBg,
+            border = BorderStroke(1.2.dp, borderStrokeColor),
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues()
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = if (isLoggingIn) {
-                                        listOf(Color.LightGray, Color.LightGray)
-                                    } else {
-                                        listOf(GradientStart, GradientEnd)
-                                    }
-                                )
-                            )
-                            .padding(vertical = 12.dp),
-                        contentAlignment = Alignment.Center
+                    UserAvatar(isLoggedIn = isLoggedIn)
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = if (isLoggedIn) accountName else "未登录账号",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (isLoggedIn) "云端同步服务正常运行中" else "登录后同步您的错题本与练习进度",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                        )
+                        Text(
+                            text = status,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold,
+                        )
+                    }
+                }
+
+                if (!isLoggedIn) {
+                    val loginButtonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+                    androidx.compose.material3.Button(
+                        onClick = onLogin,
+                        enabled = !isLoggingIn,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = loginButtonShape,
+                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.outline),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isLoggingIn) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.primary,
+                            contentColor = if (isLoggingIn) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onPrimary
+                        ),
+                        contentPadding = PaddingValues(vertical = 12.dp)
                     ) {
                         Text(
                             text = if (isLoggingIn) "正在安全验证登录..." else "本机号码一键登录",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.labelLarge
                         )
                     }
                 }
@@ -1401,16 +1410,17 @@ private fun AccountProfileCard(
 
 @Composable
 private fun UserAvatar(isLoggedIn: Boolean) {
+    val avatarShape = RoundedCornerShape(topStart = 14.dp, topEnd = 3.dp, bottomEnd = 14.dp, bottomStart = 3.dp)
     Surface(
         modifier = Modifier.size(64.dp),
-        shape = CircleShape,
-        color = Color.Transparent,
-        border = BorderStroke(2.dp, Brush.sweepGradient(listOf(GradientStart, GradientEnd, GradientStart)))
+        shape = avatarShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.primary)
     ) {
         Box(
             modifier = Modifier
                 .padding(3.dp)
-                .clip(CircleShape)
+                .clip(avatarShape)
                 .background(if (isLoggedIn) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
         ) {
@@ -1455,30 +1465,45 @@ private fun OverviewTile(
     modifier: Modifier = Modifier,
 ) {
     val isDark = isSystemInDarkTheme()
-    val borderAlpha = if (isDark) 0.15f else 0.6f
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderAlpha)),
-        shadowElevation = 1.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+    val cardBg = MaterialTheme.colorScheme.surface
+    val borderStrokeColor = MaterialTheme.colorScheme.outline
+    val asymmetricShape = RoundedCornerShape(topStart = 10.dp, topEnd = 2.dp, bottomEnd = 10.dp, bottomStart = 2.dp)
+    val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
+
+    Box(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(top = 3.dp, start = 3.dp)
+                .background(shadowColor, shape = asymmetricShape)
+        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 3.dp, end = 3.dp),
+            shape = asymmetricShape,
+            color = cardBg,
+            border = BorderStroke(1.2.dp, borderStrokeColor),
         ) {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleMedium.copy(fontSize = 15.sp),
-                fontWeight = FontWeight.Black,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = title,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
-            )
+            Column(
+                modifier = Modifier.padding(horizontal = 8.dp, vertical = 10.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 14.sp),
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Serif,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f)
+                )
+            }
         }
     }
 }
@@ -1491,65 +1516,80 @@ private fun SettingsSection(
     onLogout: () -> Unit,
 ) {
     val isDark = isSystemInDarkTheme()
-    val borderAlpha = if (isDark) 0.15f else 0.65f
-    
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = borderAlpha)),
-        shadowElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier.padding(vertical = 6.dp),
+    val cardBg = MaterialTheme.colorScheme.surface
+    val borderStrokeColor = MaterialTheme.colorScheme.outline
+    val asymmetricShape = RoundedCornerShape(topStart = 16.dp, topEnd = 4.dp, bottomEnd = 16.dp, bottomStart = 4.dp)
+    val shadowColor = if (isDark) Color(0xFF090D10) else Color(0xFF1E293B)
+
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .padding(top = 4.dp, start = 4.dp)
+                .background(shadowColor, shape = asymmetricShape)
+        )
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 4.dp, end = 4.dp),
+            shape = asymmetricShape,
+            color = cardBg,
+            border = BorderStroke(1.2.dp, borderStrokeColor),
         ) {
-            SettingsRow(
-                icon = Icons.Rounded.Lock,
-                iconColor = MaterialTheme.colorScheme.primary,
-                title = "账号与安全",
-                value = accountName
-            )
-            SettingsDivider()
-            SettingsRow(
-                icon = Icons.Rounded.Sync,
-                iconColor = MaterialTheme.colorScheme.secondary,
-                title = "云端同步",
-                value = if (isLoggedIn) "已开启自动备份" else "未开启（登录后开启）"
-            )
-            SettingsDivider()
-            SettingsRow(
-                icon = Icons.Rounded.SignalCellularAlt,
-                iconColor = MaterialTheme.colorScheme.tertiary,
-                title = "登录状态",
-                value = status
-            )
-            SettingsDivider()
-            SettingsRow(
-                icon = Icons.AutoMirrored.Rounded.Help,
-                iconColor = MaterialTheme.colorScheme.primary,
-                title = "帮助与反馈",
-                value = "使用问题、功能建议与反馈"
-            )
-            if (isLoggedIn) {
+            Column(
+                modifier = Modifier.padding(vertical = 6.dp),
+            ) {
+                SettingsRow(
+                    icon = Icons.Rounded.Lock,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    title = "账号与安全",
+                    value = accountName
+                )
                 SettingsDivider()
-                androidx.compose.material3.TextButton(
-                    onClick = onLogout,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        androidx.compose.material3.Icon(
-                            imageVector = Icons.Rounded.PowerSettingsNew,
-                            contentDescription = "退出",
-                            modifier = Modifier.size(16.dp)
+                SettingsRow(
+                    icon = Icons.Rounded.Sync,
+                    iconColor = MaterialTheme.colorScheme.secondary,
+                    title = "云端同步",
+                    value = if (isLoggedIn) "已开启自动备份" else "未开启（登录后开启）"
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = Icons.Rounded.SignalCellularAlt,
+                    iconColor = MaterialTheme.colorScheme.tertiary,
+                    title = "登录状态",
+                    value = status
+                )
+                SettingsDivider()
+                SettingsRow(
+                    icon = Icons.AutoMirrored.Rounded.Help,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    title = "帮助与反馈",
+                    value = "使用问题、功能建议与反馈"
+                )
+                if (isLoggedIn) {
+                    SettingsDivider()
+                    val logoutButtonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
+                    androidx.compose.material3.OutlinedButton(
+                        onClick = onLogout,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+                        shape = logoutButtonShape,
+                        border = BorderStroke(1.2.dp, MaterialTheme.colorScheme.error),
+                        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                            contentColor = MaterialTheme.colorScheme.error,
+                            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.05f)
                         )
-                        Text("退出当前账号", fontWeight = FontWeight.Bold)
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            androidx.compose.material3.Icon(
+                                imageVector = Icons.Rounded.PowerSettingsNew,
+                                contentDescription = "退出",
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text("退出当前账号", fontWeight = FontWeight.Bold, fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace)
+                        }
                     }
                 }
             }
@@ -1564,6 +1604,7 @@ private fun SettingsRow(
     title: String,
     value: String,
 ) {
+    val rowShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1573,8 +1614,9 @@ private fun SettingsRow(
     ) {
         Surface(
             modifier = Modifier.size(38.dp),
-            shape = CircleShape,
+            shape = rowShape,
             color = iconColor.copy(alpha = 0.1f),
+            border = BorderStroke(1.2.dp, iconColor)
         ) {
             Box(contentAlignment = Alignment.Center) {
                 androidx.compose.material3.Icon(
@@ -1589,10 +1631,16 @@ private fun SettingsRow(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+            Text(
+                title, 
+                style = MaterialTheme.typography.bodyLarge, 
+                fontWeight = FontWeight.Bold,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.SansSerif
+            )
             Text(
                 value,
                 style = MaterialTheme.typography.labelSmall,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
             )
         }
@@ -1616,20 +1664,21 @@ private fun SettingsDivider() {
 @Composable
 private fun AccountStateBadge(isLoggedIn: Boolean) {
     val badgeColor = if (isLoggedIn) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f)
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
     } else {
-        MaterialTheme.colorScheme.error.copy(alpha = 0.10f)
+        MaterialTheme.colorScheme.error.copy(alpha = 0.08f)
     }
     val borderColor = if (isLoggedIn) {
-        MaterialTheme.colorScheme.primary.copy(alpha = 0.22f)
+        MaterialTheme.colorScheme.primary
     } else {
-        MaterialTheme.colorScheme.error.copy(alpha = 0.22f)
+        MaterialTheme.colorScheme.error
     }
+    val badgeShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
 
     Surface(
-        shape = RoundedCornerShape(999.dp),
+        shape = badgeShape,
         color = badgeColor,
-        border = BorderStroke(1.dp, borderColor),
+        border = BorderStroke(1.2.dp, borderColor),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
@@ -1638,17 +1687,18 @@ private fun AccountStateBadge(isLoggedIn: Boolean) {
         ) {
             Box(
                 modifier = Modifier
-                    .size(7.dp)
+                    .size(6.dp)
                     .background(
                         color = if (isLoggedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
-                        shape = CircleShape,
-                    ),
+                        shape = RoundedCornerShape(1.dp)
+                    )
             )
             Text(
-                text = if (isLoggedIn) "已登录" else "未登录",
+                text = if (isLoggedIn) "云端已同步" else "本地离线",
                 style = MaterialTheme.typography.labelSmall,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = if (isLoggedIn) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
             )
         }
     }
@@ -1759,6 +1809,7 @@ private fun QuestionSummary(question: MistakeQuestion) {
 
 @Composable
 private fun ReviewButtons(onReview: (String) -> Unit) {
+    val buttonShape = RoundedCornerShape(topStart = 8.dp, topEnd = 2.dp, bottomEnd = 8.dp, bottomStart = 2.dp)
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1766,8 +1817,8 @@ private fun ReviewButtons(onReview: (String) -> Unit) {
     ) {
         androidx.compose.material3.OutlinedButton(
             onClick = { onReview("unfamiliar") },
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.5.dp, ColorUnfamiliar.copy(alpha = 0.8f)),
+            shape = buttonShape,
+            border = BorderStroke(1.2.dp, ColorUnfamiliar),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = ColorUnfamiliar.copy(alpha = 0.05f),
                 contentColor = ColorUnfamiliar
@@ -1789,8 +1840,8 @@ private fun ReviewButtons(onReview: (String) -> Unit) {
         
         androidx.compose.material3.OutlinedButton(
             onClick = { onReview("reviewing") },
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.5.dp, ColorReviewing.copy(alpha = 0.8f)),
+            shape = buttonShape,
+            border = BorderStroke(1.2.dp, ColorReviewing),
             colors = ButtonDefaults.outlinedButtonColors(
                 containerColor = ColorReviewing.copy(alpha = 0.05f),
                 contentColor = ColorReviewing
@@ -1812,7 +1863,8 @@ private fun ReviewButtons(onReview: (String) -> Unit) {
         
         androidx.compose.material3.Button(
             onClick = { onReview("mastered") },
-            shape = RoundedCornerShape(12.dp),
+            shape = buttonShape,
+            border = BorderStroke(1.2.dp, ColorMastered),
             colors = ButtonDefaults.buttonColors(
                 containerColor = ColorMastered,
                 contentColor = Color.White
