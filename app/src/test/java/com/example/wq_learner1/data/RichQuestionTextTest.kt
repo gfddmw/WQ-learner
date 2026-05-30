@@ -80,4 +80,10 @@ class RichQuestionTextTest {
         assertTrue(prepared.contains("`O(n)`"))
         assertFalse(prepared.contains("\\n"))
     }
+
+    @Test
+    fun rendersTransposeCorrectly() {
+        val rendered = renderQuestionContent("${'$'}A^\\top${'$'}")
+        assertEquals("Aᵀ", rendered)
+    }
 }

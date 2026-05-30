@@ -384,7 +384,7 @@ private val latexSymbols = mapOf(
     "\\setminus" to "∖", "\\forall" to "∀", "\\exists" to "∃", "\\neg" to "¬",
     "\\vee" to "∨", "\\land" to "∧", "\\oplus" to "⊕", "\\otimes" to "⊗",
     "\\perp" to "⊥", "\\angle" to "∠", "\\infty" to "∞", "\\partial" to "∂",
-    "\\nabla" to "∇", "\\leftarrow" to "←", "\\rightarrow" to "→", "\\to" to "→",
+    "\\nabla" to "∇", "\\leftarrow" to "←", "\\rightarrow" to "→", "\\top" to "T", "\\to" to "→",
     "\\leftrightarrow" to "↔", "\\Leftarrow" to "⇐", "\\Rightarrow" to "⇒",
     "\\Leftrightarrow" to "⇔", "\\iff" to "⟺", "\\uparrow" to "↑", "\\downarrow" to "↓",
     "\\lfloor" to "⌊", "\\rfloor" to "⌋", "\\lceil" to "⌈", "\\rceil" to "⌉",
