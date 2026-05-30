@@ -196,9 +196,9 @@ private fun renderLatex(raw: String): String {
     }
     text = text.replace(Regex("""\\hspace\{[^}]*\}"""), "  ")
 
-    // Symbols replacement
-    latexSymbols.forEach { (latex, rendered) ->
-        text = text.replace(latex, rendered)
+    // Symbols replacement (sorted by length descending to prevent prefix conflicts)
+    sortedLatexSymbols.forEach { entry ->
+        text = text.replace(entry.key, entry.value)
     }
     
     // Handle scripts
@@ -333,7 +333,7 @@ private fun replaceScript(source: String, marker: Char, map: Map<Char, Char>): S
                 index += 1
                 continue
             }
-            val content = source.substring(nextIndex + 1, end)
+            val content = source.substring(nextIndex + 1, end).replace(" ", "")
             index = end + 1
             content
         } else {
@@ -341,7 +341,17 @@ private fun replaceScript(source: String, marker: Char, map: Map<Char, Char>): S
             index += 2
             char.toString()
         }
-        result.append(token.map { map[it] ?: it }.joinToString(""))
+        
+        val mapped = token.map { map[it] }
+        if (mapped.all { it != null }) {
+            result.append(mapped.filterNotNull().joinToString(""))
+        } else {
+            if (token.length > 1) {
+                result.append(token.map { map[it] ?: it }.joinToString(""))
+            } else {
+                result.append(marker).append(token)
+            }
+        }
     }
     return result.toString()
 }
@@ -379,7 +389,9 @@ private val latexSymbols = mapOf(
     "\\leq" to "≤", "\\le" to "≤", "\\geq" to "≥", "\\ge" to "≥",
     "\\neq" to "≠", "\\ne" to "≠", "\\approx" to "≈", "\\equiv" to "≡",
     "\\sim" to "∼", "\\propto" to "∝", "\\ll" to "≪", "\\gg" to "≫",
+    "\\sum" to "∑", "\\prod" to "∏",
     "\\subset" to "⊂", "\\supset" to "⊃", "\\subseteq" to "⊆", "\\supseteq" to "⊇",
+    "\\iint" to "∬", "\\int" to "∫",
     "\\in" to "∈", "\\notin" to "∉", "\\cup" to "∪", "\\cap" to "∩",
     "\\setminus" to "∖", "\\forall" to "∀", "\\exists" to "∃", "\\neg" to "¬",
     "\\vee" to "∨", "\\land" to "∧", "\\oplus" to "⊕", "\\otimes" to "⊗",
@@ -391,6 +403,8 @@ private val latexSymbols = mapOf(
     "\\emptyset" to "∅"
 )
 
+private val sortedLatexSymbols = latexSymbols.entries.sortedByDescending { it.key.length }
+
 private val superscriptMap = mapOf(
     '0' to '⁰', '1' to '¹', '2' to '²', '3' to '³', '4' to '⁴',
     '5' to '⁵', '6' to '⁶', '7' to '⁷', '8' to '⁸', '9' to '⁹',
@@ -398,7 +412,11 @@ private val superscriptMap = mapOf(
     'n' to 'ⁿ', 'i' to 'ⁱ', 'j' to 'ʲ', 'k' to 'ᵏ', 'm' to 'ᵐ',
     'x' to 'ˣ', 'y' to 'ʸ', 'z' to 'ᶻ', 'a' to 'ᵃ', 'b' to 'ᵇ',
     'c' to 'ᶜ', 'd' to 'ᵈ', 'e' to 'ᵉ', 'r' to 'ʳ', 's' to 'ˢ', 't' to 'ᵗ',
-    'T' to 'ᵀ', '*' to '﹡', 'H' to 'ᴴ'
+    'T' to 'ᵀ', '*' to '﹡', 'H' to 'ᴴ',
+    'A' to 'ᴬ', 'B' to 'ᴮ', 'C' to 'ᶜ', 'D' to 'ᴰ', 'E' to 'ᴱ',
+    'F' to 'ᶠ', 'G' to 'ᴳ', 'I' to 'ᴵ', 'J' to 'ᴶ', 'K' to 'ᴷ',
+    'L' to 'ᴸ', 'M' to 'ᴹ', 'N' to 'ᴺ', 'O' to 'ᴼ', 'P' to 'ᴾ',
+    'R' to 'ᴿ', 'S' to 'ˢ', 'U' to 'ᵁ', 'V' to 'ⱽ', 'W' to 'ᵂ'
 )
 
 private val subscriptMap = mapOf(
